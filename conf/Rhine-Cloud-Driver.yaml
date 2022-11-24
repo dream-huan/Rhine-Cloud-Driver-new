@@ -1,0 +1,29 @@
+server:
+  host: "0.0.0.0:8888"
+  name: rhine-cloud-driver
+
+redis:
+  addr: "0.0.0.0:6379"
+  pwd:
+
+mysql:
+  addr: "0.0.0.0:3306"
+  user: "root"
+  pwd: "SUIbianla123"
+  database: "project"
+
+googlerecaptchaprivatekey:
+  key: "6LdBFXIgAAAAAMam2T8Gih9gCOl0GhhBthRuSH3R"
+
+jwtkey:
+  key: "MTY1MjgxMDg2MHxOd3dBTkVKRFFrdEZUa0ZJTkVwVVFWcEdSMHhCUVRNeVZrMUhSbEpMUkVoUU0wZEdVMUJCVWpKYVNrd3lXVnBKUlVkRlF6TlBURkU9fPlbyxwil3sCL6pwYb_U6xI0PgydY"
+
+log:
+  log_path: /workspaces/Rhine-Cloud-Driver/log/access.log
+  max_age: 7
+  max_backup: 7
+  max_size: 100
+  compress:
+  service_name: rhine-cloud-driver
+  level: -1   # -1: debug 0:info 2:warn 3:error 
+  log_console: true  # false: only log to log file

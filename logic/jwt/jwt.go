@@ -9,7 +9,7 @@ import (
 
 // JWT个性化claims结构体
 type CustomClaims struct {
-	Uid int64
+	Uid string
 	jwt.StandardClaims
 }
 
@@ -19,7 +19,7 @@ func Init(key string) {
 	jwtkey = key
 }
 
-func GenerateToken(uid int64) (string, error) {
+func GenerateToken(uid string) (string, error) {
 	expireTime := time.Now().Add(time.Second * 60 * 60 * 24 * 7) //登录有效期为7天
 	claims := CustomClaims{
 		Uid: uid,
@@ -53,16 +53,16 @@ func TokenValid(token string) bool {
 	return false
 }
 
-func TokenGetUid(token string) (isok bool, uid int64) {
+func TokenGetUid(token string) (isok bool, uid string) {
 	if !TokenValid(token) {
-		return false, -1
+		return false, ""
 	}
 	tokenClaims, err := jwt.ParseWithClaims(token, &CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return []byte(jwtkey), nil
 	})
 	if err != nil {
 		// 这里的错误100%是此token非法，有人伪造，直接判定为无效token
-		return false, -1
+		return false, ""
 	}
 	claims, _ := tokenClaims.Claims.(*CustomClaims)
 	return true, claims.Uid

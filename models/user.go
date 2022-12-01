@@ -13,7 +13,7 @@ import (
 
 // 用户结构体
 type User struct {
-	Uid          int64  // 用户ID
+	Uid          string // 用户ID
 	Name         string // 用户名称
 	Password     string // 用户密码
 	Email        string // 用户邮箱
@@ -60,7 +60,12 @@ func checkNewPassword(password string) bool {
 }
 
 func checkNewEmail(email string) bool {
-	re := regexp.MustCompile("/^#?([a-f\\d])([a-f\\d])([a-f\\d])$/i")
+	matched, err := regexp.Match("/^([a-zA-Z0-9_-])+@([a-zA-Z0-9_-])+(.[a-zA-Z0-9_-])+/", []byte(email))
+	if err != nil {
+		log.Logger.Error("邮箱正则表达式匹配错误", zap.Error(err))
+		return false
+	}
+	return matched
 }
 
 func (user *User) verifyPassword(password string) bool {
@@ -71,26 +76,23 @@ func (user *User) verifyPassword(password string) bool {
 }
 
 // 验证访问权限
-func (user *User) VerifyAccess(token string, uid int64, password string) (bool, string) {
+func (user *User) VerifyAccess(token string, email string, password string) (bool, string) {
 	// token校验
 	if token != "" {
-		isok, uid := jwt.TokenGetUid(token)
-		if isok == false {
+		isok, _ := jwt.TokenGetUid(token)
+		if !isok {
 			return false, ""
 		}
-		gormDB.Table("users").Where("uid", uid).Find(&user)
 		return jwt.TokenValid(token), ""
 	}
 	// 密码校验
-	var count int64
-	gormDB.Table("users").Where("uid", uid).Count(&count)
-	if count == 0 {
+	gormDB.Table("users").Where("email", email).Find(&user)
+	if user.Uid == "" {
 		return false, ""
 	}
-	gormDB.Table("users").Where("uid", uid).Find(&user)
 	if user.verifyPassword(password) {
 		// 生成新的token下发
-		token, err := jwt.GenerateToken(uid)
+		token, err := jwt.GenerateToken(user.Uid)
 		if err != nil {
 			log.Logger.Error("生成token错误", zap.Error(err))
 			return false, ""
@@ -101,18 +103,24 @@ func (user *User) VerifyAccess(token string, uid int64, password string) (bool, 
 }
 
 // 新用户生成
-func (user *User) AddUser() bool {
+func (user *User) AddUser() (bool, int) {
 	// 判断名称长度
 	if !checkNewName(user.Name) {
-		return false
+		return false, common.ERROR_USER_NAME_LENGTH_NOT_MATCH
 	}
 	// 判断密码长度以及字符规定
 	if !checkNewPassword(user.Password) {
-		return false
+		return false, common.ERROR_USER_PASSWORD_NOT_MATCH_RULES
 	}
 	// 判断邮箱是否合法 满足xxx@xxx.xxx条件
+	if !checkNewEmail(user.Email) {
+		return false, common.ERROR_USER_EMAIL_NOT_MATHCH_RULES
+	}
+	// 创建文件夹，待补充，文件夹的路径为：项目根目录/邮箱/
+	// 生成唯一ID，用户到时登录采用email+密码进行登录
+	// 初步考虑采用雪花算法来生成唯一ID
 
-	return false
+	return true, 0
 }
 
 // 待后续完善 禁止用户

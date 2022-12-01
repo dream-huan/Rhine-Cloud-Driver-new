@@ -33,7 +33,7 @@ func init() {
 
 func Test_AddUser(t *testing.T) {
 	user := User{
-		Uid:      1,
+		Uid:      "1",
 		Password: "1",
 	}
 	fmt.Printf("%v\n", setHaltHash(user.Password))

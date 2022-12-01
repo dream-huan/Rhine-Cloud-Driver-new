@@ -6,6 +6,7 @@ import (
 	_ "Rhine-Cloud-Driver/common"
 	"Rhine-Cloud-Driver/config"
 	log "Rhine-Cloud-Driver/logic/log"
+
 	_ "github.com/go-sql-driver/mysql"
 	"go.uber.org/zap"
 	"gorm.io/driver/mysql"
@@ -15,10 +16,10 @@ import (
 var gormDB *gorm.DB
 var db *sql.DB
 
-func Init(cf config.Config) {
+func initMysql(cf config.MysqlConfig) {
 	// var err error
 	// // dsn := "root:SUIbianla123@tcp(127.0.0.1:3306)/project"
-	dsn := cf.MysqlManager.User + ":" + cf.MysqlManager.Password + "@tcp(" + cf.MysqlManager.Address + ")/" + cf.MysqlManager.Database + "?charset=utf8mb4&parseTime=True&loc=Local"
+	dsn := cf.User + ":" + cf.Password + "@tcp(" + cf.Address + ")/" + cf.Database + "?charset=utf8mb4&parseTime=True&loc=Local"
 	var err error
 	gormDB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	// db, err := sql.Open("mysql", dsn)
@@ -32,4 +33,8 @@ func Init(cf config.Config) {
 		log.Logger.Error("获取数据库DB错误", zap.Error(err))
 	}
 	db.SetMaxOpenConns(100)
+}
+
+func Init(cf config.Config) {
+	initMysql(cf.MysqlManager)
 }

@@ -11,38 +11,54 @@ import (
 )
 
 type RedisManager struct {
-	rdb *redis.Client
+	rdb *redis.ClusterClient
 }
 
 var ctx = context.Background()
 
-func Init(cf config.Config) RedisManager {
-	rdb := redis.NewClient(&redis.Options{
-		Addr:     cf.RedisManager.Address,
-		Password: cf.RedisManager.Password, // no password set
-		DB:       0,                        // use default DB
+func InitRedis(cf config.RedisConfig) RedisManager {
+	ctx := context.Background()
+	rdb := redis.NewClusterClient(&redis.ClusterOptions{
+		Addrs:    cf.Address,
+		Password: cf.Password,
 	})
-	pong, err := rdb.Ping(ctx).Result()
-	if err != nil {
-		log.Logger.Error("InitRedis ping error", zap.Error(err), zap.String("pong", pong))
+	if _, err := rdb.Ping(ctx).Result(); err != nil {
+		log.Logger.Error("InitRedis ping error", zap.Error(err))
 		return RedisManager{
 			rdb: nil,
 		}
 	}
-
-	log.Logger.Info("InitRedis success!")
 	return RedisManager{
 		rdb: rdb,
 	}
 }
 
-// func init() {
-// 	rdb = redis.NewClient(&redis.Options{
-// 		Addr:     "localhost:6379",
-// 		Password: "", // no password set
-// 		DB:       0,  // use default DB
-// 	})
-// }
+func (m *RedisManager) SetKey(key string, value interface{}, expiration time.Duration) bool {
+	err := m.rdb.Set(ctx, key, value, expiration).Err()
+	if err != nil {
+		log.Logger.Error("redis cluster set key error:", zap.Error(err))
+		return false
+	}
+	return true
+}
+
+func (m *RedisManager) GetKey(key string) interface{} {
+	value, err := m.rdb.Get(ctx, key).Result()
+	if err != nil {
+		log.Logger.Error("redis cluster get key error:", zap.Error(err))
+		return ""
+	}
+	return value
+}
+
+func (m *RedisManager) DelKey(key string) bool {
+	err := m.rdb.Del(ctx, key).Err()
+	if err != nil {
+		log.Logger.Error("redis cluster del key error:", zap.Error(err))
+		return false
+	}
+	return true
+}
 
 func (m *RedisManager) GetDownloadKey(key string) (bool, string) {
 	val, err := m.rdb.Get(ctx, key).Result()

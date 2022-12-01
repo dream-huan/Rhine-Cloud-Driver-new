@@ -36,5 +36,5 @@ func Test_AddUser(t *testing.T) {
 		Uid:      1,
 		Password: "1",
 	}
-	fmt.Printf("%v", user)
+	fmt.Printf("%v\n", setHaltHash(user.Password))
 }

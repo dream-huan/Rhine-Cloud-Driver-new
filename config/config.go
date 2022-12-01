@@ -14,8 +14,8 @@ type ServerConfig struct {
 }
 
 type RedisConfig struct {
-	Address  string `yaml:"addr"`
-	Password string `yaml:"pwd"`
+	Address  []string `yaml:"addr"`
+	Password string   `yaml:"pwd"`
 }
 
 type MysqlConfig struct {

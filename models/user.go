@@ -5,6 +5,7 @@ import (
 	"Rhine-Cloud-Driver/logic/jwt"
 	"Rhine-Cloud-Driver/logic/log"
 	"crypto/sha256"
+	"regexp"
 	"strings"
 
 	"go.uber.org/zap"
@@ -29,7 +30,40 @@ func setHaltHash(password string) string {
 	return string(value) + ":" + string(halt)
 }
 
-func (user *User) veifyPassword(password string) bool {
+func checkNewName(name string) bool {
+	if len(name) <= 0 || len(name) > 12 {
+		return false
+	}
+	return true
+}
+
+func checkNewPassword(password string) bool {
+	if len(password) < 6 || len(password) > 18 {
+		return false
+	}
+	// 除大小写和数字外，特殊字符仅能包含*、+、-、^、# 、@、!
+	allowChar := map[string]bool{
+		"*": true,
+		"+": true,
+		"-": true,
+		"^": true,
+		"#": true,
+		"@": true,
+		"!": true,
+	}
+	for _, v := range password {
+		if !((v >= 'A' && v <= 'Z') || (v >= 'a' || v <= 'z') || (v >= '0' && v <= '9') || (allowChar[string(v)])) {
+			return false
+		}
+	}
+	return true
+}
+
+func checkNewEmail(email string) bool {
+	re := regexp.MustCompile("/^#?([a-f\\d])([a-f\\d])([a-f\\d])$/i")
+}
+
+func (user *User) verifyPassword(password string) bool {
 	stringArray := strings.Split(user.Password, ":")
 	hash := sha256.New()
 	value := hash.Sum([]byte(password + stringArray[1]))
@@ -37,37 +71,47 @@ func (user *User) veifyPassword(password string) bool {
 }
 
 // 验证访问权限
-func (user *User) VerifyAccess(token string, uid int64, password string) (bool, int64, string) {
+func (user *User) VerifyAccess(token string, uid int64, password string) (bool, string) {
 	// token校验
 	if token != "" {
 		isok, uid := jwt.TokenGetUid(token)
 		if isok == false {
-			return false, -1, ""
+			return false, ""
 		}
-		return jwt.TokenValid(token), uid, ""
+		gormDB.Table("users").Where("uid", uid).Find(&user)
+		return jwt.TokenValid(token), ""
 	}
 	// 密码校验
 	var count int64
 	gormDB.Table("users").Where("uid", uid).Count(&count)
 	if count == 0 {
-		return false, -1, ""
+		return false, ""
 	}
-	var actualPassword string
-	gormDB.Table("users").Where("uid", uid).Find(&actualPassword)
-	if actualPassword == password {
+	gormDB.Table("users").Where("uid", uid).Find(&user)
+	if user.verifyPassword(password) {
 		// 生成新的token下发
 		token, err := jwt.GenerateToken(uid)
 		if err != nil {
 			log.Logger.Error("生成token错误", zap.Error(err))
-			return false, -1, ""
+			return false, ""
 		}
-		return true, uid, token
+		return true, token
 	}
-	return false, uid, ""
+	return false, ""
 }
 
 // 新用户生成
 func (user *User) AddUser() bool {
+	// 判断名称长度
+	if !checkNewName(user.Name) {
+		return false
+	}
+	// 判断密码长度以及字符规定
+	if !checkNewPassword(user.Password) {
+		return false
+	}
+	// 判断邮箱是否合法 满足xxx@xxx.xxx条件
+
 	return false
 }
 

@@ -1,8 +1,15 @@
-FROM ubuntu:focal
+FROM golang:1.19.3-alpine
+
+RUN apk update && apk add --no cache wget curl git npm build gcc
+
+WORKDIR /rhine-cloud-driver
 
 ENV PROC_NAME rhine-cloud-driver
 
 EXPOSE 8888
+
+# 待处理 增加ip数据库
+# 73
 
 COPY ./start.sh ./start.sh
 RUN chmod +x ./start.sh

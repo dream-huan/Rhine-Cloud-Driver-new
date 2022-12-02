@@ -1,6 +1,4 @@
-FROM golang:1.19.3-alpine
-
-RUN apk update && apk add --no cache wget curl git npm build gcc
+FROM ubuntu:focal
 
 WORKDIR /rhine-cloud-driver
 

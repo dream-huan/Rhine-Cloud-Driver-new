@@ -1,11 +1,18 @@
-# 取ubuntu最新镜像
-FROM scratch
-ADD ubuntu-focal-oci-amd64-root.tar.gz /
-CMD ["bash"]
+FROM ubuntu:focal
 
 ENV PROC_NAME rhine-cloud-driver
 
-# 开放端口
-
 EXPOSE 8888
 
+RUN chmod +x ./start.sh
+CMD ./start.sh
+
+# # 配置时区
+# RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
+#     && echo "Asia/Shanghai" > /etc/timezone
+
+# WORKDIR /rhine-cloud-driver
+
+# VOLUME [ "/rhine-cloud-driver/uploads", "/data"]
+
+# ENTRYPOINT [ "./rhine-cloud-driver" ]

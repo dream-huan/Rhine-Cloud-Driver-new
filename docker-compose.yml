@@ -1,15 +1,14 @@
 version: "3"
 services:
-  cloudreve:
+  rhine-cloud-driver:
     container_name: rhine-cloud-driver
-    image: rhine-cloud-driver/rhine-cloud-driver:latest
+    image: dreamxw/rhine-cloud-driver:latest
     restart: always
     ports:
       - "8888:8888"
     volumes:
-      - temp_data:/data
       - ./rhine-cloud-driver/uploads:/rhine-cloud-driver/uploads
-      - ./rhine-cloud-driver/Rhine-Cloud-Driver.yaml:/rhine-cloud-driver/Rhine-Cloud-Driver.yaml
+      - ./rhine-cloud-driver/Rhine-Cloud-Driver.yaml:/rhine-cloud-driver/conf/Rhine-Cloud-Driver.yaml
       - ./rhine-cloud-driver/avatar:/rhine-cloud-driver/avatar
     depends_on:
       - mysql

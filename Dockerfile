@@ -32,4 +32,4 @@ COPY --from=0 /rhine-cloud-driver-builder/Rhine-Cloud-Driver-new/Rhine-Cloud-Dri
 
 VOLUME [ "/rhine-cloud-driver/uploads",  "/rhine-cloud-driver/avatar"]
 
-ENTRYPOINT [ "./rhine-cloud-driver" ]
+ENTRYPOINT [ "./Rhine-Cloud-Driver" ]

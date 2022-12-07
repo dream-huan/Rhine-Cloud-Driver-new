@@ -2,9 +2,11 @@ FROM golang:1.19.3-alpine
 
 RUN apk update && apk add --no-cache wget curl git
 
-WORKDIR /rhine-cloud-driver-builder/backend
+WORKDIR /rhine-cloud-driver-builder
 
 RUN git clone --recurse-submodules https://github.com/dream-huan/Rhine-Cloud-Driver-new.git
+
+WORKDIR /rhine-cloud-driver-builder/Rhine-Cloud-Driver-new
 
 RUN go build
 

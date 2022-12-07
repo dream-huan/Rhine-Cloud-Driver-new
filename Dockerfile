@@ -1,6 +1,6 @@
 FROM golang:1.19.3-alpine
 
-RUN apk update && apk add --no cache wget curl git
+RUN apk update && apk add --no-cache wget curl git
 
 WORKDIR /rhine-cloud-driver-builder/backend
 

@@ -14,9 +14,15 @@ FROM alpine:latest
 
 WORKDIR /rhine-cloud-driver
 
+RUN apk add --no-cache tzdata ca-certificates && \
+    update-ca-certificates
+
 # 配置时区
-RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
-    && echo "Asia/Shanghai" > /etc/timezone
+RUN apk --no-cache add tzdata ca-certificates && \
+    update-ca-certificates && \
+    cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
+    echo "Asia/Shanghai" > /etc/timezone
+ENV TZ Asia/Shanghai
 
 ENV PROC_NAME rhine-cloud-driver
 

@@ -24,4 +24,4 @@ COPY --from=0 /rhine-cloud-driver-builder/backend/rhine-cloud-driver ./
 
 VOLUME [ "/rhine-cloud-driver/uploads",  "/rhine-cloud-driver/avatar"]
 
-CMD [ "./rhine-cloud-driver" ]
+ENTRYPOINT [ "./rhine-cloud-driver" ]

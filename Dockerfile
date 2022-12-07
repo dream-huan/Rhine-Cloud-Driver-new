@@ -1,26 +1,27 @@
 FROM golang:1.19.3-alpine
 
-RUN apk update && apk add --no cache wget curl git npm build gcc
+RUN apk update && apk add --no cache wget curl git
+
+WORKDIR /rhine-cloud-driver-builder/backend
+
+RUN git clone --recurse-submodules https://github.com/dream-huan/Rhine-Cloud-Driver-new.git
+
+RUN go build
+
+FROM alpine:latest
 
 WORKDIR /rhine-cloud-driver
+
+# 配置时区
+RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
+    && echo "Asia/Shanghai" > /etc/timezone
 
 ENV PROC_NAME rhine-cloud-driver
 
 EXPOSE 8888
 
-# 待处理 增加ip数据库
-# 73
+COPY --from=0 /rhine-cloud-driver-builder/backend/rhine-cloud-driver ./
 
-COPY ./start.sh ./start.sh
-RUN chmod +x ./start.sh
-CMD ./start.sh
+VOLUME [ "/rhine-cloud-driver/uploads",  "/rhine-cloud-driver/avatar"]
 
-# # 配置时区
-# RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
-#     && echo "Asia/Shanghai" > /etc/timezone
-
-# WORKDIR /rhine-cloud-driver
-
-# VOLUME [ "/rhine-cloud-driver/uploads", "/data"]
-
-# ENTRYPOINT [ "./rhine-cloud-driver" ]
+CMD [ "./rhine-cloud-driver" ]

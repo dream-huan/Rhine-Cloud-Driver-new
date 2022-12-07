@@ -1,6 +1,6 @@
 FROM golang:1.19.3-alpine
 
-RUN apk update && apk add --no cache wget curl git
+RUN apk update && apk add --no-cache wget curl git
 
 WORKDIR /rhine-cloud-driver-builder/backend
 
@@ -24,4 +24,4 @@ COPY --from=0 /rhine-cloud-driver-builder/backend/rhine-cloud-driver ./
 
 VOLUME [ "/rhine-cloud-driver/uploads",  "/rhine-cloud-driver/avatar"]
 
-CMD [ "./rhine-cloud-driver" ]
+ENTRYPOINT [ "./rhine-cloud-driver" ]

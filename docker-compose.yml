@@ -1,0 +1,36 @@
+version: "3"
+services:
+  cloudreve:
+    container_name: rhine-cloud-driver
+    image: rhine-cloud-driver/rhine-cloud-driver:latest
+    restart: always
+    ports:
+      - "8888:8888"
+    volumes:
+      - temp_data:/data
+      - ./rhine-cloud-driver/uploads:/rhine-cloud-driver/uploads
+      - ./rhine-cloud-driver/Rhine-Cloud-Driver.yaml:/rhine-cloud-driver/Rhine-Cloud-Driver.yaml
+      - ./rhine-cloud-driver/avatar:/rhine-cloud-driver/avatar
+    depends_on:
+      - mysql
+      - redis
+      - nginx
+  mysql:
+    container_name: mysql
+    image: mysql:8.0.31
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=your_mysql_password
+      - MYSQL_TCP_PORT=3306
+  redis:
+    container_name: redis
+    image: redis:7.0
+    restart: always
+  nginx:
+    container_name: nginx
+    image: nginx:1.23.2
+    restart: always
+
+    # 请执行：
+    # mkdir -vp rhine-cloud-driver/{avatar,uploads} \
+    # touch Rhine-Cloud-Driver.yaml

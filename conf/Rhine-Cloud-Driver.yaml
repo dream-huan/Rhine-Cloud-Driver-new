@@ -11,6 +11,7 @@ mysql:
   addr: "0.0.0.0:3306"
   user: "root"
   pwd: "Test123456"
+  database: "project"
 
 googlerecaptchaprivatekey:
   key: "6LdBFXIgAAAAAMam2T8Gih9gCOl0GhhBthRuSH3R"

@@ -34,6 +34,7 @@ func init() {
 
 func Test_AddUser(t *testing.T) {
 	user := User{
+		Name:       "test",
 		Uid:        1,
 		Password:   "123456",
 		Email:      "1@qq.com",

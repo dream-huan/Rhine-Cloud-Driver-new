@@ -88,8 +88,9 @@ func (user *User) VerifyAccess(token string, email string, password string) (str
 		return "", nil
 	}
 	// 密码校验
-	DB.Table("users").Where("email", email).Find(&user)
-	if user.Name == "" {
+	var count int64
+	DB.Table("users").Where("email", email).Find(&user).Count(&count)
+	if count == 0 {
 		return "", common.NewError(common.ERROR_USER_UID_PASSWORD_WRONG)
 	}
 	if user.verifyPassword(password) {

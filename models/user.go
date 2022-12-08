@@ -4,7 +4,8 @@ import (
 	"Rhine-Cloud-Driver/common"
 	"Rhine-Cloud-Driver/logic/jwt"
 	"Rhine-Cloud-Driver/logic/log"
-	"crypto/sha1"
+	"crypto/md5"
+	"encoding/hex"
 	"regexp"
 	"strings"
 
@@ -26,9 +27,9 @@ type User struct {
 
 func setHaltHash(password string) string {
 	halt := common.RandStringRunes(16)
-	hash := sha1.New()
-	value := hash.Sum([]byte(password + string(halt)))
-	return string(value) + ":" + string(halt)
+	hash := md5.New()
+	value := hex.EncodeToString(hash.Sum([]byte(password + string(halt))))
+	return value + ":" + halt
 }
 
 func checkNewName(name string) bool {
@@ -71,9 +72,9 @@ func checkNewEmail(email string) bool {
 
 func (user *User) verifyPassword(password string) bool {
 	stringArray := strings.Split(user.Password, ":")
-	hash := sha1.New()
-	value := hash.Sum([]byte(password + stringArray[1]))
-	return string(value) == stringArray[0]
+	hash := md5.New()
+	value := hex.EncodeToString(hash.Sum([]byte(password + stringArray[1])))
+	return value == stringArray[0]
 }
 
 // 验证访问权限

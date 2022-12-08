@@ -5,11 +5,10 @@ name: Go
 
 on:
   push:
-    branches: 
-    - main
+    branches-ignore: []
   pull_request:
     branches: 
-    - develop
+    - main
 
 jobs:
 

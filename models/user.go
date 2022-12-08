@@ -61,7 +61,7 @@ func checkNewPassword(password string) bool {
 }
 
 func checkNewEmail(email string) bool {
-	matched, err := regexp.Match("/^([a-zA-Z0-9_-])+@([a-zA-Z0-9_-])+(.[a-zA-Z0-9_-])+/", []byte(email))
+	matched, err := regexp.Match("^[a-zA-Z0-9]+([-_.][A-Za-zd]+)*@([a-zA-Z0-9]+[-.])+[A-Za-z]{2,5}$", []byte(email))
 	if err != nil {
 		log.Logger.Error("邮箱正则表达式匹配错误", zap.Error(err))
 		return false

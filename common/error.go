@@ -39,6 +39,6 @@ var errMap = map[int]string{
 	ERROR_USER_EMAIL_CONFLICT:           "邮箱已被注册",
 }
 
-func NewError(errorNum int64) error {
-	return errors.New(errMap[int(errorNum)])
+func NewError(errorNum int) error {
+	return errors.New(errMap[errorNum])
 }

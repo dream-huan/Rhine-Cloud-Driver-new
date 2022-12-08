@@ -63,6 +63,6 @@ func Test_Login(t *testing.T) {
 	user := User{}
 	err, token := user.VerifyAccess("", "1@qq.com", "123456")
 	fmt.Printf("%v %v\n", err, token)
-	DB.Table("users").Where("email", "1@qq.com").Find(&user)
-	fmt.Println(user)
+	err, token = user.VerifyAccess("", "7891374@qq.com", "123456")
+	fmt.Printf("%v %v\n", err, token)
 }

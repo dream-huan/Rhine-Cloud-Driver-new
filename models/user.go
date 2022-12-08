@@ -74,6 +74,7 @@ func (user *User) verifyPassword(password string) bool {
 	stringArray := strings.Split(user.Password, ":")
 	hash := sha256.New()
 	value := hex.EncodeToString(hash.Sum([]byte(password + stringArray[1])))
+	log.Logger.Debug("test", zap.Any("value", value), zap.Any("p", stringArray[0]))
 	return value == stringArray[0]
 }
 

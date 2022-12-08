@@ -4,7 +4,7 @@ import (
 	"Rhine-Cloud-Driver/common"
 	"Rhine-Cloud-Driver/logic/jwt"
 	"Rhine-Cloud-Driver/logic/log"
-	"crypto/sha256"
+	"crypto/sha1"
 	"regexp"
 	"strings"
 
@@ -26,7 +26,7 @@ type User struct {
 
 func setHaltHash(password string) string {
 	halt := common.RandStringRunes(16)
-	hash := sha256.New()
+	hash := sha1.New()
 	value := hash.Sum([]byte(password + string(halt)))
 	return string(value) + ":" + string(halt)
 }
@@ -71,7 +71,7 @@ func checkNewEmail(email string) bool {
 
 func (user *User) verifyPassword(password string) bool {
 	stringArray := strings.Split(user.Password, ":")
-	hash := sha256.New()
+	hash := sha1.New()
 	value := hash.Sum([]byte(password + stringArray[1]))
 	return string(value) == stringArray[0]
 }

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"testing"
+	"time"
 
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v2"
@@ -33,8 +34,16 @@ func init() {
 
 func Test_AddUser(t *testing.T) {
 	user := User{
-		Uid:      "1",
-		Password: "1",
+		Uid:        1,
+		Password:   "123456",
+		Email:      "1@qq.com",
+		CreateTime: time.Now().Format("2006-01-02 15:04:05"),
 	}
-	fmt.Printf("%v\n", setHaltHash(user.Password))
+	fmt.Printf("%v\n", user.AddUser())
+}
+
+func Test_Login(t *testing.T) {
+	user := User{}
+	_, token := user.VerifyAccess("", "1@qq.com", "123456")
+	fmt.Printf("%v\n", token)
 }

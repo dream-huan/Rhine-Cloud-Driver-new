@@ -19,7 +19,7 @@ jwtkey:
   key: "MTY1MjgxMDg2MHxOd3dBTkVKRFFrdEZUa0ZJTkVwVVFWcEdSMHhCUVRNeVZrMUhSbEpMUkVoUU0wZEdVMUJCVWpKYVNrd3lXVnBKUlVkRlF6TlBURkU9fPlbyxwil3sCL6pwYb_U6xI0PgydY"
 
 log:
-  log_path: /workspaces/Rhine-Cloud-Driver/log/access.log
+  log_path: ./Rhine-Cloud-Driver/log/access.log
   max_age: 7
   max_backup: 7
   max_size: 100

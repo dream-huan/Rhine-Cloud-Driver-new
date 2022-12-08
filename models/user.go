@@ -9,18 +9,19 @@ import (
 	"strings"
 
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 // 用户结构体
 type User struct {
-	Uid          string // 用户ID
-	Name         string // 用户名称
-	Password     string // 用户密码
-	Email        string // 用户邮箱
-	CreateTime   string // 创建时间
-	UsedStorage  int64  // 已用容量
-	TotalStorage int64  // 总容量
-	GroupId      int64  // 所属用户组
+	Uid          uint64 `json:"uid" gorm:"primarykey"`                        // 用户ID
+	Name         string `json:"name" gorm:"size:30"`                          // 用户名称
+	Password     string `json:"password" gorm:"size:18"`                      // 用户密码
+	Email        string `json:"email" gorm:"size:255;index:idx_email,unique"` // 用户邮箱
+	CreateTime   string `json:"create_time"`                                  // 创建时间
+	UsedStorage  int64  `json:"used_storage"`                                 // 已用容量
+	TotalStorage int64  `json:"total_storage"`                                // 总容量
+	GroupId      int64  `json:"group_id"`                                     // 所属用户组
 }
 
 func setHaltHash(password string) string {
@@ -76,59 +77,67 @@ func (user *User) verifyPassword(password string) bool {
 }
 
 // 验证访问权限
-func (user *User) VerifyAccess(token string, email string, password string) (bool, string) {
+func (user *User) VerifyAccess(token string, email string, password string) (string, error) {
 	// token校验
 	if token != "" {
 		isok, _ := jwt.TokenGetUid(token)
-		if !isok {
-			return false, ""
+		if !(isok && jwt.TokenValid(token)) {
+			return "", common.NewError(common.ERROR_USER_TOEKN_INVALIED)
 		}
-		return jwt.TokenValid(token), ""
+		return "", nil
 	}
 	// 密码校验
-	gormDB.Table("users").Where("email", email).Find(&user)
-	if user.Uid == "" {
-		return false, ""
+	DB.Table("users").Where("email", email).Find(&user)
+	if user.Uid == 0 {
+		return "", common.NewError(common.ERROR_USER_UID_PASSWORD_WRONG)
 	}
 	if user.verifyPassword(password) {
 		// 生成新的token下发
 		token, err := jwt.GenerateToken(user.Uid)
 		if err != nil {
 			log.Logger.Error("生成token错误", zap.Error(err))
-			return false, ""
+			return "", common.NewError(common.ERROR_JWT_GENERATE_TOKEN_FAILED)
 		}
-		return true, token
+		return token, nil
 	}
-	return false, ""
+	return "", common.NewError(common.ERROR_USER_UID_PASSWORD_WRONG)
 }
 
 // 新用户生成
-func (user *User) AddUser() (bool, int) {
+func (user *User) AddUser() error {
 	// 判断名称长度
 	if !checkNewName(user.Name) {
-		return false, common.ERROR_USER_NAME_LENGTH_NOT_MATCH
+		return common.NewError(common.ERROR_USER_NAME_LENGTH_NOT_MATCH)
 	}
 	// 判断密码长度以及字符规定
 	if !checkNewPassword(user.Password) {
-		return false, common.ERROR_USER_PASSWORD_NOT_MATCH_RULES
+		return common.NewError(common.ERROR_USER_PASSWORD_NOT_MATCH_RULES)
 	}
 	// 判断邮箱是否合法 满足xxx@xxx.xxx条件
 	if !checkNewEmail(user.Email) {
-		return false, common.ERROR_USER_EMAIL_NOT_MATHCH_RULES
+		return common.NewError(common.ERROR_USER_EMAIL_NOT_MATHCH_RULES)
 	}
-	// 创建文件夹，待补充，文件夹的路径为：项目根目录/邮箱/
-	// 生成唯一ID，用户到时登录采用email+密码进行登录
-	// 初步考虑采用雪花算法来生成唯一ID
-
-	return true, 0
+	// 加盐并加密
+	user.Password = setHaltHash(user.Password)
+	tx := DB.Session(&gorm.Session{})
+	err := tx.Table("users").Create(&user).Error
+	if err != nil {
+		// 这里的错误有两种可能的问题，第一个是email冲突了，第二个是数据库真的出现错误
+		// 我们返回给用户只考虑前者的情况
+		log.Logger.Error("事务执行：插入新用户错误", zap.Any("user", &user), zap.Error(err))
+		tx.Rollback()
+		return common.NewError(common.ERROR_USER_EMAIL_CONFLICT)
+	}
+	if !common.Mkdir(user.Email) {
+		tx.Rollback()
+		return common.NewError(common.ERROR_USER_MKDIR_FAILED)
+	}
+	tx.Commit()
+	return nil
 }
 
-// 待后续完善 禁止用户
-func (user *User) BanUser() {
-
-}
-
-// 待后续完善 修改用户所属用户组
+// 禁止用户在考虑新建一个用户组，直接没有任何功能，即为封禁。
+// todo 修改用户所属用户组
 func (user *User) EditUserGroup(newGroupId int64) {
 
 }

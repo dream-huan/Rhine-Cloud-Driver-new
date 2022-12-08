@@ -74,7 +74,6 @@ func (user *User) verifyPassword(password string) bool {
 	stringArray := strings.Split(user.Password, ":")
 	hash := sha256.New()
 	value := hex.EncodeToString(hash.Sum([]byte(password + stringArray[1])))
-	log.Logger.Debug("test", zap.Any("value", value), zap.Any("p", stringArray[0]))
 	return value == stringArray[0]
 }
 
@@ -90,7 +89,7 @@ func (user *User) VerifyAccess(token string, email string, password string) (str
 	}
 	// 密码校验
 	DB.Table("users").Where("email", email).Find(&user)
-	if user.Uid == 0 {
+	if user.Name == "" {
 		return "", common.NewError(common.ERROR_USER_UID_PASSWORD_WRONG)
 	}
 	if user.verifyPassword(password) {

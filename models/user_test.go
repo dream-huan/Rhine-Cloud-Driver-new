@@ -61,8 +61,8 @@ func Test_AddUser(t *testing.T) {
 
 func Test_Login(t *testing.T) {
 	user := User{}
-	err, token := user.VerifyAccess("", "1@qq.com", "123456")
+	token, err := user.VerifyAccess("", "1@qq.com", "123456")
 	fmt.Printf("%v %v\n", err, token)
-	err, token = user.VerifyAccess("", "7891374@qq.com", "123456")
+	token, err = user.VerifyAccess("", "7891374@qq.com", "123456")
 	fmt.Printf("%v %v\n", err, token)
 }

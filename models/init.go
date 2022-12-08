@@ -5,6 +5,7 @@ import (
 
 	_ "Rhine-Cloud-Driver/common"
 	"Rhine-Cloud-Driver/config"
+	"Rhine-Cloud-Driver/logic/jwt"
 	log "Rhine-Cloud-Driver/logic/log"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -38,6 +39,11 @@ func initMysql(cf config.MysqlConfig) {
 	DB.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&User{})
 }
 
+func initJwt(cf config.JwtConfig) {
+	jwt.Init(cf.Key)
+}
+
 func Init(cf config.Config) {
 	initMysql(cf.MysqlManager)
+	initJwt(cf.JwtKey)
 }

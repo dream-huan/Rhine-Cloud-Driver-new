@@ -41,6 +41,22 @@ func Test_AddUser(t *testing.T) {
 		CreateTime: time.Now().Format("2006-01-02 15:04:05"),
 	}
 	fmt.Printf("%v\n", user.AddUser())
+	user2 := User{
+		Name:       "test",
+		Uid:        2,
+		Password:   "123456",
+		Email:      "123@qq.com",
+		CreateTime: time.Now().Format("2006-01-02 15:04:05"),
+	}
+	fmt.Printf("%v\n", user2.AddUser())
+	user3 := User{
+		Name:       "test",
+		Uid:        3,
+		Password:   "123456",
+		Email:      "1@qq.com",
+		CreateTime: time.Now().Format("2006-01-02 15:04:05"),
+	}
+	fmt.Printf("%v\n", user3.AddUser())
 }
 
 func Test_Login(t *testing.T) {

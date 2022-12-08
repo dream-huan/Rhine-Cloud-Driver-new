@@ -16,7 +16,7 @@ import (
 type User struct {
 	Uid          uint64 `json:"uid" gorm:"primarykey"`                        // 用户ID
 	Name         string `json:"name" gorm:"size:30"`                          // 用户名称
-	Password     string `json:"password" gorm:"size:18"`                      // 用户密码
+	Password     string `json:"password" gorm:"size:255"`                     // 用户密码
 	Email        string `json:"email" gorm:"size:255;index:idx_email,unique"` // 用户邮箱
 	CreateTime   string `json:"create_time"`                                  // 创建时间
 	UsedStorage  int64  `json:"used_storage"`                                 // 已用容量

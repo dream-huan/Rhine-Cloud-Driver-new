@@ -48,7 +48,7 @@ const (
 	maxSequence = int64(-1) ^ (int64(-1) << sequenceBits)
 
 	timeLeft = uint8(22)
-	workLeft = uint8(17)
+	workLeft = uint8(12)
 	// 2022-12-9 10:45:07 +0800 CST
 	twepoch = int64(1670553907000)
 )

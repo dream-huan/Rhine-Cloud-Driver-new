@@ -49,8 +49,8 @@ const (
 
 	timeLeft = uint8(22)
 	workLeft = uint8(12)
-	// 2022-12-9 10:45:07 +0800 CST
-	twepoch = int64(1670553907000)
+	// 2012-12-9 11:06:01 +0800 CST
+	twepoch = int64(1355022361000)
 )
 
 func getMilliSeconds() int64 {

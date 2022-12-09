@@ -26,6 +26,11 @@ const (
 	ERROR_JWT_GENERATE_TOKEN_FAILED = 300001
 )
 
+// 公共库相关错误
+const (
+	ERROR_COMMON_SNOWFLOWS_ERROR = 400001
+)
+
 var errMap = map[int]string{
 	ERROR_USER_NAME_LENGTH_NOT_MATCH:    "用户名称长度不符合规定",
 	ERROR_USER_PASSWORD_NOT_MATCH_RULES: "用户密码不符合规定",
@@ -37,6 +42,7 @@ var errMap = map[int]string{
 	ERROR_USER_UID_PASSWORD_WRONG:       "uid不存在或密码错误",
 	ERROR_JWT_GENERATE_TOKEN_FAILED:     "token生成失败",
 	ERROR_USER_EMAIL_CONFLICT:           "邮箱已被注册",
+	ERROR_COMMON_SNOWFLOWS_ERROR:        "雪花算法生成错误",
 }
 
 func NewError(errorNum int) error {

@@ -35,7 +35,6 @@ func init() {
 func Test_AddUser(t *testing.T) {
 	user := User{
 		Name:       "test",
-		Uid:        1,
 		Password:   "123456",
 		Email:      "1@qq.com",
 		CreateTime: time.Now().Format("2006-01-02 15:04:05"),
@@ -43,7 +42,6 @@ func Test_AddUser(t *testing.T) {
 	fmt.Printf("%v\n", user.AddUser())
 	user2 := User{
 		Name:       "test",
-		Uid:        2,
 		Password:   "123456",
 		Email:      "123@qq.com",
 		CreateTime: time.Now().Format("2006-01-02 15:04:05"),
@@ -51,7 +49,6 @@ func Test_AddUser(t *testing.T) {
 	fmt.Printf("%v\n", user2.AddUser())
 	user3 := User{
 		Name:       "test",
-		Uid:        3,
 		Password:   "123456",
 		Email:      "1@qq.com",
 		CreateTime: time.Now().Format("2006-01-02 15:04:05"),
@@ -63,6 +60,9 @@ func Test_Login(t *testing.T) {
 	user := User{}
 	token, err := user.VerifyAccess("", "1@qq.com", "123456")
 	fmt.Printf("%v %v\n", err, token)
+	DB.Table("users").Where("email", "1@qq.com").Find(&user)
+	fmt.Println(user)
+	user = User{}
 	token, err = user.VerifyAccess("", "7891374@qq.com", "123456")
 	fmt.Printf("%v %v\n", err, token)
 }

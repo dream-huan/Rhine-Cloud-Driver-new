@@ -30,6 +30,6 @@ EXPOSE 8888
 
 COPY --from=0 /rhine-cloud-driver-builder/Rhine-Cloud-Driver-new/Rhine-Cloud-Driver ./
 
-VOLUME [ "/rhine-cloud-driver/uploads",  "/rhine-cloud-driver/avatar"]
+VOLUME [ "/rhine-cloud-driver/uploads",  "/rhine-cloud-driver/avatar", "/rhine-cloud-driver/logs"]
 
 ENTRYPOINT [ "./Rhine-Cloud-Driver" ]

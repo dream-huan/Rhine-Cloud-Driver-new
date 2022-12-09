@@ -121,8 +121,14 @@ func (user *User) AddUser() error {
 	}
 	// 加盐并加密
 	user.Password = setHaltHash(user.Password)
+	var err error
+	user.Uid, err = common.IDBuilder.NextID()
+	if err != nil {
+		log.Logger.Error("雪花算法生成错误")
+		return err
+	}
 	tx := DB.Session(&gorm.Session{})
-	err := tx.Table("users").Create(&user).Error
+	err = tx.Table("users").Create(&user).Error
 	if err != nil {
 		// 这里的错误有两种可能的问题，第一个是email冲突了，第二个是数据库真的出现错误
 		// 我们返回给用户只考虑前者的情况
@@ -142,4 +148,10 @@ func (user *User) AddUser() error {
 // todo 修改用户所属用户组
 func (user *User) EditUserGroup(newGroupId int64) {
 
+}
+
+func (user *User) PermissionControl(function int) {
+	// 获取所属用户组，拿到拥有权限
+	// 将权限与所要权限比对，判定是否一致
+	// 这个数据存redis会比较好
 }

@@ -17,6 +17,8 @@ import (
 var DB *gorm.DB
 var db *sql.DB
 
+// todo:设立钩子，进行权限认证
+
 func initMysql(cf config.MysqlConfig) {
 	// var err error
 	// // dsn := "root:SUIbianla123@tcp(127.0.0.1:3306)/project"

@@ -3,6 +3,7 @@ package model
 import (
 	"database/sql"
 
+	"Rhine-Cloud-Driver/common"
 	_ "Rhine-Cloud-Driver/common"
 	"Rhine-Cloud-Driver/config"
 	"Rhine-Cloud-Driver/logic/jwt"
@@ -48,4 +49,5 @@ func initJwt(cf config.JwtConfig) {
 func Init(cf config.Config) {
 	initMysql(cf.MysqlManager)
 	initJwt(cf.JwtKey)
+	common.NewWorker(1)
 }

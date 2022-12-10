@@ -4,7 +4,6 @@ import (
 	"database/sql"
 
 	"Rhine-Cloud-Driver/common"
-	_ "Rhine-Cloud-Driver/common"
 	"Rhine-Cloud-Driver/config"
 	"Rhine-Cloud-Driver/logic/jwt"
 	log "Rhine-Cloud-Driver/logic/log"
@@ -39,7 +38,7 @@ func initMysql(cf config.MysqlConfig) {
 	db.SetMaxOpenConns(100)
 
 	// 自动建表+建立索引
-	DB.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&User{})
+	DB.Set("gorm:table_options", "ENGINE=InnoDB;CHARACTER=utf8mb4").AutoMigrate(&User{}, &Group{})
 }
 
 func initJwt(cf config.JwtConfig) {

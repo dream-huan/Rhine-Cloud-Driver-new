@@ -78,7 +78,7 @@ func (user *User) verifyPassword(password string) bool {
 }
 
 // 验证访问权限
-func (user *User) VerifyAccess(token string, email string, password string) (string, error) {
+func (user *User) VerifyAccess(token string, uid uint64, email string, password string) (string, error) {
 	// token校验
 	if token != "" {
 		isok, _ := jwt.TokenGetUid(token)
@@ -89,7 +89,14 @@ func (user *User) VerifyAccess(token string, email string, password string) (str
 	}
 	// 密码校验
 	var count int64
-	DB.Table("users").Where("email", email).Find(&user).Count(&count)
+	// uid和email必须给出一项
+	if uid != 0 {
+		DB.Table("users").Where("uid", uid).Find(&user).Count(&count)
+	} else if email != "" {
+		DB.Table("users").Where("email", email).Find(&user).Count(&count)
+	} else {
+		return "", common.NewError(common.ERROR_USER_NOT_UID_AND_EMAIL)
+	}
 	if count == 0 {
 		return "", common.NewError(common.ERROR_USER_UID_PASSWORD_WRONG)
 	}

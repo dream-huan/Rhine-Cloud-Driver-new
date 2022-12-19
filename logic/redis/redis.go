@@ -9,31 +9,23 @@ import (
 	"time"
 )
 
-type RedisManager struct {
-	rdb *redis.ClusterClient
-}
+var rdb *redis.ClusterClient
 
 var ctx = context.Background()
 
-func InitRedis(cf config.RedisConfig) RedisManager {
+func InitRedis(cf config.RedisConfig) {
 	ctx := context.Background()
-	rdb := redis.NewClusterClient(&redis.ClusterOptions{
+	rdb = redis.NewClusterClient(&redis.ClusterOptions{
 		Addrs:    cf.Address,
 		Password: cf.Password,
 	})
 	if _, err := rdb.Ping(ctx).Result(); err != nil {
 		log.Logger.Error("InitRedis ping error", zap.Error(err))
-		return RedisManager{
-			rdb: nil,
-		}
-	}
-	return RedisManager{
-		rdb: rdb,
 	}
 }
 
-func (m *RedisManager) setRedisKey(key string, value interface{}, expiration time.Duration) bool {
-	err := m.rdb.Set(ctx, key, value, expiration).Err()
+func SetRedisKey(key string, value interface{}, expiration time.Duration) bool {
+	err := rdb.Set(ctx, key, value, expiration).Err()
 	if err != nil {
 		log.Logger.Error("redis cluster set key error:", zap.Error(err))
 		return false
@@ -41,8 +33,8 @@ func (m *RedisManager) setRedisKey(key string, value interface{}, expiration tim
 	return true
 }
 
-func (m *RedisManager) getRedisKey(key string) interface{} {
-	value, err := m.rdb.Get(ctx, key).Result()
+func GetRedisKey(key string) interface{} {
+	value, err := rdb.Get(ctx, key).Result()
 	if err != nil {
 		log.Logger.Error("redis cluster get key error:", zap.Error(err))
 		return ""
@@ -50,8 +42,8 @@ func (m *RedisManager) getRedisKey(key string) interface{} {
 	return value
 }
 
-func (m *RedisManager) delRedisKey(key string) bool {
-	err := m.rdb.Del(ctx, key).Err()
+func DelRedisKey(key string) bool {
+	err := rdb.Del(ctx, key).Err()
 	if err != nil {
 		log.Logger.Error("redis cluster del key error:", zap.Error(err))
 		return false

@@ -66,7 +66,7 @@ func (w *Worker) NextID() (uint64, error) {
 func (w *Worker) nextID() (uint64, error) {
 	timeStamp := getMilliSeconds()
 	if timeStamp < w.lastStamp {
-		return 0, NewError(ERROR_COMMON_SNOWFLOWS_ERROR)
+		return 0, NewError(ERROR_COMMON_SNOWFLOWS_GENERATE)
 	}
 
 	if w.lastStamp == timeStamp {

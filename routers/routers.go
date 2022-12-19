@@ -17,6 +17,7 @@ func InitRouter(cf config.Config) *gin.Engine {
 
 	// 用户路由
 	userRouter := r.Group("user")
+	userRouter.Use()
 	userRouter.POST("login", controllers.UserDemo)
 
 	// 管理员路由

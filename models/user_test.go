@@ -58,17 +58,28 @@ func Test_AddUser(t *testing.T) {
 
 func Test_Login(t *testing.T) {
 	user := User{}
-	token, err := user.VerifyAccess("", "1@qq.com", "123456")
+	// 邮箱登录 账户密码正确
+	token, err := user.VerifyAccess("", 0, "1@qq.com", "123456")
 	fmt.Printf("%v %v\n", err, token)
+	// 获取用户信息
 	DB.Table("users").Where("email", "1@qq.com").Find(&user)
 	fmt.Println(user)
-	user = User{}
-	token, err = user.VerifyAccess("", "1@qq.com", "321456")
+	// token正确
+	token, err = user.VerifyAccess(token, 0, "", "")
 	fmt.Printf("%v %v\n", err, token)
-	user = User{}
-	token, err = user.VerifyAccess("", "2@qq.com", "123456")
+	// token错误/非法
+	token, err = user.VerifyAccess("12gregreg", 0, "", "")
 	fmt.Printf("%v %v\n", err, token)
-	user = User{}
-	token, err = user.VerifyAccess("", "7891374@qq.com", "123456")
+	// uid登录 账户密码正确
+	token, err = user.VerifyAccess("", user.Uid, "", "123456")
+	fmt.Printf("%v %v\n", err, token)
+	// uid登录 密码错误
+	token, err = user.VerifyAccess("", user.Uid, "", "321456")
+	fmt.Printf("%v %v\n", err, token)
+	// 邮箱登录 密码错误
+	token, err = user.VerifyAccess("", 0, "1@qq.com", "321456")
+	fmt.Printf("%v %v\n", err, token)
+	// 邮箱不存在
+	token, err = user.VerifyAccess("", 0, "2@qq.com", "123456")
 	fmt.Printf("%v %v\n", err, token)
 }

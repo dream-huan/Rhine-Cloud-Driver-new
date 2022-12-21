@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"regexp"
 	"strings"
+	"time"
 
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -134,6 +135,7 @@ func (user *User) AddUser() error {
 		log.Logger.Error("雪花算法生成错误")
 		return err
 	}
+	user.CreateTime = time.Now().Format("2006-01-02 15:04:05")
 	tx := DB.Session(&gorm.Session{})
 	err = tx.Table("users").Create(&user).Error
 	if err != nil {
@@ -149,6 +151,12 @@ func (user *User) AddUser() error {
 	}
 	tx.Commit()
 	return nil
+}
+
+func (user *User) GetUserDetail() {
+	// 回传uid来进行校验
+	// 获取信息可以不需要有那么强的实时性，可以不取事务
+	DB.Table("users").Where("uid", user.Uid).Find(&user)
 }
 
 // 禁止用户在考虑新建一个用户组，直接没有任何功能，即为封禁。

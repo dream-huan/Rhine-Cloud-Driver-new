@@ -29,7 +29,19 @@ const (
 
 // 公共库相关错误
 const (
-	ERROR_COMMON_SNOWFLOWS_GENERATE = 400001
+	ERROR_COMMON_SNOWFLOWS_GENERATE     = 400001
+	ERROR_COMMON_RECAPTCHA_VERIFICATION = 400002
+)
+
+// 路由相关错误
+const (
+	ERROR_ROUTER_PARSEJSON = 500001
+)
+
+// 鉴权相关错误
+const (
+	ERROR_AUTH_GET_TOKEN     = 600001
+	ERROR_AUTH_TOKEN_INVALID = 600002
 )
 
 var errMap = map[int]string{
@@ -45,6 +57,10 @@ var errMap = map[int]string{
 	ERROR_JWT_GENERATE_TOKEN_FAILED:     "token生成失败",
 	ERROR_USER_EMAIL_CONFLICT:           "邮箱已被注册",
 	ERROR_COMMON_SNOWFLOWS_GENERATE:     "雪花算法生成错误",
+	ERROR_ROUTER_PARSEJSON:              "JSON结构体解析错误",
+	ERROR_COMMON_RECAPTCHA_VERIFICATION: "recaptcha验证码错误",
+	ERROR_AUTH_GET_TOKEN:                "无法拿到token",
+	ERROR_AUTH_TOKEN_INVALID:            "token无效",
 }
 
 func NewError(errorNum int) error {

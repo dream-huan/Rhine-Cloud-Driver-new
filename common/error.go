@@ -44,6 +44,13 @@ const (
 	ERROR_AUTH_TOKEN_INVALID = 600002
 )
 
+// 文件相关错误
+const (
+	ERROR_FILE_COUNT_EXCEED_LIMIT = 700001
+	ERROR_FILE_PATH_INVALID       = 700002
+	ERROR_FILE_NEWUSER_MKDIR      = 700003
+)
+
 var errMap = map[int]string{
 	ERROR_USER_NAME_LENGTH_NOT_MATCH:    "用户名称长度不符合规定",
 	ERROR_USER_PASSWORD_NOT_MATCH_RULES: "用户密码不符合规定",
@@ -61,6 +68,9 @@ var errMap = map[int]string{
 	ERROR_COMMON_RECAPTCHA_VERIFICATION: "recaptcha验证码错误",
 	ERROR_AUTH_GET_TOKEN:                "无法拿到token",
 	ERROR_AUTH_TOKEN_INVALID:            "token无效",
+	ERROR_FILE_COUNT_EXCEED_LIMIT:       "请求文件数量超限",
+	ERROR_FILE_PATH_INVALID:             "文件路径无效",
+	ERROR_FILE_NEWUSER_MKDIR:            "新用户新建根目录失败",
 }
 
 func NewError(errorNum int) error {

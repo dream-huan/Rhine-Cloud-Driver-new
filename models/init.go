@@ -1,6 +1,7 @@
 package model
 
 import (
+	"Rhine-Cloud-Driver/logic/redis"
 	"database/sql"
 
 	"Rhine-Cloud-Driver/common"
@@ -38,7 +39,7 @@ func initMysql(cf config.MysqlConfig) {
 	db.SetMaxOpenConns(100)
 
 	// 自动建表+建立索引
-	DB.Set("gorm:table_options", "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4").AutoMigrate(&User{}, &Group{})
+	DB.Set("gorm:table_options", "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4").AutoMigrate(&User{}, &Group{}, &File{})
 }
 
 func initJwt(cf config.JwtConfig) {
@@ -49,4 +50,5 @@ func Init(cf config.Config) {
 	initMysql(cf.MysqlManager)
 	initJwt(cf.JwtKey)
 	common.NewWorker(1)
+	redis.InitRedis(cf.RedisManager)
 }

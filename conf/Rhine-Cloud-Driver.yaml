@@ -3,8 +3,8 @@ server:
   name: rhine-cloud-driver
 
 redis:
-  addrs: 
-  - 0.0.0.0:6379
+  addr:
+  - "0.0.0.0:6379"
   pwd:
 
 mysql:

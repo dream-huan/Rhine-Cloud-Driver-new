@@ -16,7 +16,7 @@ import (
 
 // 用户结构体
 type User struct {
-	Uid          uint64 `json:"uid" gorm:"primarykey"`                        // 用户ID
+	Uid          uint64 `json:"uid" gorm:"primaryKey"`                        // 用户ID
 	Name         string `json:"name" gorm:"size:30"`                          // 用户名称
 	Password     string `json:"password" gorm:"size:255"`                     // 用户密码
 	Email        string `json:"email" gorm:"size:255;index:idx_email,unique"` // 用户邮箱
@@ -149,6 +149,17 @@ func (user *User) AddUser() error {
 		tx.Rollback()
 		return common.NewError(common.ERROR_USER_MKDIR_FAILED)
 	}
+	// 插入files表
+	err = tx.Table("files").Create(&File{
+		Uid:      user.Uid,
+		ParentID: 0,
+		IsDir:    true,
+		Valid:    true,
+	}).Error
+	if err != nil {
+		tx.Rollback()
+		return common.NewError(common.ERROR_FILE_NEWUSER_MKDIR)
+	}
 	tx.Commit()
 	return nil
 }
@@ -159,14 +170,14 @@ func (user *User) GetUserDetail() {
 	DB.Table("users").Where("uid", user.Uid).Find(&user)
 }
 
-// 禁止用户在考虑新建一个用户组，直接没有任何功能，即为封禁。
-// todo 修改用户所属用户组
-func (user *User) EditUserGroup(newGroupId int64) {
-
-}
-
-func (user *User) PermissionControl(function int) {
-	// 获取所属用户组，拿到拥有权限
-	// 将权限与所要权限比对，判定是否一致
-	// 这个数据存redis会比较好
-}
+//// 禁止用户在考虑新建一个用户组，直接没有任何功能，即为封禁。
+//// todo 修改用户所属用户组
+//func (user *User) EditUserGroup(newGroupId int64) {
+//
+//}
+//
+//func (user *User) PermissionControl(function int) {
+//	// 获取所属用户组，拿到拥有权限
+//	// 将权限与所要权限比对，判定是否一致
+//	// 这个数据存redis会比较好
+//}

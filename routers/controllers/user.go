@@ -8,31 +8,31 @@ import (
 	"strings"
 )
 
-type NewUser struct {
+type RegisterRequest struct {
 	Name           string `json:"name"`
 	Password       string `json:"password"`
 	Email          string `json:"email"`
 	RecaptchaToken string `json:"recaptcha_token"`
 }
 
-type VerifyUser struct {
+type RegisterResponse struct {
+	Uid uint64 `json:"uid"`
+}
+
+type LoginRequest struct {
 	Uid            string `json:"uid"`
 	Email          string `json:"email"`
 	Password       string `json:"password"`
 	RecaptchaToken string `json:"recaptcha_token"`
 }
 
-type LoginResponseData struct {
+type LoginResponse struct {
 	Token string `json:"token"`
-}
-
-type RegisterResponseData struct {
-	Uid uint64 `json:"uid"`
 }
 
 // UserLogin 用户登录
 func UserLogin(c *gin.Context) {
-	var data VerifyUser
+	var data LoginRequest
 	// 从json中取数据
 	if err := c.ShouldBindJSON(&data); err != nil {
 		makeResult(c, 200, err, nil)
@@ -45,7 +45,7 @@ func UserLogin(c *gin.Context) {
 	//}
 	newUser := model.User{}
 	var uid uint64
-	if len(strings.Split(data.Uid, "@")) >= 1 {
+	if len(strings.Split(data.Uid, "@")) > 1 {
 		data.Email = data.Uid
 		uid = 0
 	} else {
@@ -56,13 +56,13 @@ func UserLogin(c *gin.Context) {
 		makeResult(c, 200, err, nil)
 		return
 	}
-	responseData := LoginResponseData{token}
+	responseData := LoginResponse{token}
 	makeResult(c, 200, nil, responseData)
 }
 
 // UserRegister 用户注册
 func UserRegister(c *gin.Context) {
-	var data NewUser
+	var data RegisterRequest
 	// 从json中取数据
 	if err := c.ShouldBindJSON(&data); err != nil {
 		makeResult(c, 200, err, nil)
@@ -84,7 +84,7 @@ func UserRegister(c *gin.Context) {
 		makeResult(c, 200, err, nil)
 		return
 	}
-	responseData := RegisterResponseData{newUser.Uid}
+	responseData := RegisterResponse{newUser.Uid}
 	makeResult(c, 200, nil, responseData)
 }
 

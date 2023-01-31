@@ -17,20 +17,20 @@ func checkKeyExpiration(key string, expiration time.Duration) {
 	}
 }
 
-func setMemKey(key string, value interface{}, expiration time.Duration) {
+func SetMemKey(key string, value interface{}, expiration time.Duration) {
 	mem.Store(key, value)
 	if expiration != 0 {
 		go checkKeyExpiration(key, expiration)
 	}
 }
 
-func getMemKey(key string) (bool, interface{}) {
+func GetMemKey(key string) (bool, interface{}) {
 	if value, ok := mem.Load(key); ok != false {
 		return true, value
 	}
 	return false, nil
 }
 
-func delMemKey(key string) {
+func DelMemKey(key string) {
 	mem.Delete(key)
 }

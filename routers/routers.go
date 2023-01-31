@@ -31,11 +31,10 @@ func InitRouter(cf config.Config) *gin.Engine {
 	userRouter.Use(middleware.TokenVerify())
 	{
 		userRouter.GET("getinfo", controllers.GetUserDetail)
+		// 文件路由
+		fileRouter := r.Group("")
+		fileRouter.POST("directory", controllers.GetMyFiles)
 	}
-
-	// 文件路由
-	fileRouter := r.Group("file")
-	fileRouter.GET("list", controllers.FileDemo)
 
 	// 管理员路由
 	adminRouter := r.Group("admin")

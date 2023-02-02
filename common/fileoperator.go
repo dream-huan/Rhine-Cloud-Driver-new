@@ -15,8 +15,13 @@ func Mkdir(dirName string) bool {
 	return true
 }
 
-func RemoveFile() {
-
+func RemoveFile(path string) bool {
+	err := os.RemoveAll(path)
+	if err != nil {
+		log.Logger.Error("删除文件错误", zap.Error(err))
+		return false
+	}
+	return true
 }
 
 func RemoveDir() {

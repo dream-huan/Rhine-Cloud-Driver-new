@@ -14,6 +14,7 @@ const (
 	ERROR_USER_UID_PASSWORD_WRONG       = 100006
 	ERROR_USER_EMAIL_CONFLICT           = 100007
 	ERROR_USER_NOT_UID_AND_EMAIL        = 100008
+	ERROR_USER_STORAGE_EXCEED           = 100009
 )
 
 // 数据库相关错误
@@ -40,8 +41,9 @@ const (
 
 // 鉴权相关错误
 const (
-	ERROR_AUTH_GET_TOKEN     = 600001
-	ERROR_AUTH_TOKEN_INVALID = 600002
+	ERROR_AUTH_GET_TOKEN        = 600001
+	ERROR_AUTH_TOKEN_INVALID    = 600002
+	ERROR_AUTH_UPLOADID_INVALID = 600003
 )
 
 // 文件相关错误
@@ -49,6 +51,10 @@ const (
 	ERROR_FILE_COUNT_EXCEED_LIMIT = 700001
 	ERROR_FILE_PATH_INVALID       = 700002
 	ERROR_FILE_NEWUSER_MKDIR      = 700003
+	ERROR_FILE_NOT_EXISTS         = 700004
+	ERROR_FILE_INDEX_INVALID      = 700005
+	ERROR_FILE_CHUNK_MISSING      = 700006
+	ERROR_FILE_STORE_PATH_INVALID = 700007
 )
 
 var errMap = map[int]string{
@@ -71,6 +77,12 @@ var errMap = map[int]string{
 	ERROR_FILE_COUNT_EXCEED_LIMIT:       "请求文件数量超限",
 	ERROR_FILE_PATH_INVALID:             "文件路径无效",
 	ERROR_FILE_NEWUSER_MKDIR:            "新用户新建根目录失败",
+	ERROR_FILE_NOT_EXISTS:               "文件未存在",
+	ERROR_FILE_INDEX_INVALID:            "文件分片下标非法",
+	ERROR_AUTH_UPLOADID_INVALID:         "上传ID非法",
+	ERROR_FILE_CHUNK_MISSING:            "文件切片缺失，请重试",
+	ERROR_USER_STORAGE_EXCEED:           "用户容量不足以存储新文件",
+	ERROR_FILE_STORE_PATH_INVALID:       "用户指定存储目录非法",
 }
 
 func NewError(errorNum int) error {

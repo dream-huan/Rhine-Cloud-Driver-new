@@ -98,8 +98,8 @@ type UserDetail struct {
 	Uid          string      `json:"uid"` // 因为前端不支持uint64，需要后端转为string来传递一下
 	Email        string      `json:"email"`
 	CreateTime   string      `json:"create_time"`
-	UsedStorage  int64       `json:"used_storage"`
-	TotalStorage int64       `json:"total_storage"`
+	UsedStorage  uint64      `json:"used_storage"`
+	TotalStorage uint64      `json:"total_storage"`
 	Group        GroupDetail `json:"group"`
 }
 

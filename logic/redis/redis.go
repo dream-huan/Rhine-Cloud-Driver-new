@@ -41,7 +41,7 @@ func GetRedisKey(key string) interface{} {
 	value, err := rdb.Get(ctx, key).Result()
 	if err != nil {
 		log.Logger.Error("redis cluster get key error:", zap.Error(err))
-		return ""
+		return nil
 	}
 	return value
 }
@@ -53,4 +53,43 @@ func DelRedisKey(key string) bool {
 		return false
 	}
 	return true
+}
+
+func RenewRedisKey(key string, expiration time.Duration) bool {
+	err := rdb.Expire(ctx, key, expiration).Err()
+	if err != nil {
+		log.Logger.Error("redis cluster del key error:", zap.Error(err))
+		return false
+	}
+	return true
+}
+
+func SetRedisKeyBitmap(key string, offset int64, value int64, expiration time.Duration) bool {
+	err := rdb.SetBit(ctx, key, offset, int(value)).Err()
+	rdb.Expire(ctx, key, expiration)
+	if err != nil {
+		log.Logger.Error("redis cluster set bitmap  error:", zap.Error(err))
+		return false
+	}
+	return true
+}
+
+func GetRedisKeyBitmap(key string, offset int64) (value int64) {
+	value, err := rdb.GetBit(ctx, key, offset).Result()
+	if err != nil {
+		return -1
+	}
+	return value
+}
+
+func CountRedisKeyBitmap(key string, start, end int64) (value int64) {
+	value, err := rdb.BitCount(ctx, key, &redis.BitCount{
+		Start: start,
+		End:   end,
+	}).Result()
+	if err != nil {
+		log.Logger.Error("CountRedisKeyBitmap error", zap.Error(err))
+		return 0
+	}
+	return value
 }

@@ -11,6 +11,7 @@ import (
 
 func InitRouter(cf config.Config) *gin.Engine {
 	router := gin.Default()
+	router.MaxMultipartMemory = 1024 << 20
 	// 跨域设置
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:3000"},
@@ -34,6 +35,9 @@ func InitRouter(cf config.Config) *gin.Engine {
 		// 文件路由
 		fileRouter := r.Group("")
 		fileRouter.POST("directory", controllers.GetMyFiles)
+		fileRouter.POST("taskcreate", controllers.UploadTaskCreate)
+		fileRouter.POST("upload", controllers.Upload)
+		fileRouter.POST("merge", controllers.MergeFileChunks)
 	}
 
 	// 管理员路由

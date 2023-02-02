@@ -21,8 +21,8 @@ type User struct {
 	Password     string `json:"password" gorm:"size:255"`                     // 用户密码
 	Email        string `json:"email" gorm:"size:255;index:idx_email,unique"` // 用户邮箱
 	CreateTime   string `json:"create_time"`                                  // 创建时间
-	UsedStorage  int64  `json:"used_storage"`                                 // 已用容量
-	TotalStorage int64  `json:"total_storage"`                                // 总容量
+	UsedStorage  uint64 `json:"used_storage"`                                 // 已用容量
+	TotalStorage uint64 `json:"total_storage"`                                // 总容量
 	GroupId      int64  `json:"group_id"`                                     // 所属用户组
 }
 

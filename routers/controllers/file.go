@@ -26,11 +26,11 @@ type GetFileSystemResponse struct {
 
 type FileSystem struct {
 	FileID      uint64 `json:"file_id"`
-	FileName    string `json:"file_name,omitempty"`
+	FileName    string `json:"file_name"`
 	MD5         string `json:"md5,omitempty"`
+	CreateTime  string `json:"create_time"`
 	FileStorage uint64 `json:"file_storage,omitempty"`
-	ParentID    uint64 `json:"parent_id,omitempty"`
-	IsDir       bool   `json:"is_dir,omitempty"`
+	IsDir       bool   `json:"is_dir"`
 }
 
 func GetMyFiles(c *gin.Context) {
@@ -53,8 +53,8 @@ func GetMyFiles(c *gin.Context) {
 			FileName:    originFiles[i].FileName,
 			MD5:         originFiles[i].MD5,
 			FileStorage: originFiles[i].FileStorage,
-			ParentID:    originFiles[i].ParentID,
 			IsDir:       originFiles[i].IsDir,
+			CreateTime:  originFiles[i].CreateTime,
 		}
 	}
 	resp := GetFileSystemResponse{
@@ -140,6 +140,7 @@ type UploadTaskRequest struct {
 	FileMD5      string `json:"file_md5"`
 	FileChunkNum int64  `json:"file_chunk_num"`
 	FileSize     uint64 `json:"file_size"`
+	TargetDirId  uint64 `json:"target_dir_id"`
 }
 
 type UploadTaskResponse struct {
@@ -156,7 +157,7 @@ func UploadTaskCreate(c *gin.Context) {
 		makeResult(c, 200, err, nil)
 		return
 	}
-	isExists, chunks, uploadID, err := model.UploadPrepare(data.FileMD5, data.FileChunkNum, uid, data.FileSize)
+	isExists, chunks, uploadID, err := model.UploadPrepare(data.FileMD5, data.FileName, data.FileChunkNum, uid, data.FileSize, data.TargetDirId)
 	if err != nil {
 		makeResult(c, 200, err, nil)
 		return
@@ -167,4 +168,21 @@ func UploadTaskCreate(c *gin.Context) {
 		UploadID:    uploadID,
 	}
 	makeResult(c, 200, nil, resp)
+}
+
+type MkdirRequest struct {
+	FileName string `json:"file_name"`
+	ParentID uint64 `json:"parent_id"`
+}
+
+func Mkdir(c *gin.Context) {
+	token, _ := c.Cookie("token")
+	_, uid := jwt.TokenGetUid(token)
+	var data MkdirRequest
+	if err := c.ShouldBindJSON(&data); err != nil {
+		makeResult(c, 200, err, nil)
+		return
+	}
+	err := model.Mkdir(uid, data.FileName, data.ParentID)
+	makeResult(c, 200, err, nil)
 }

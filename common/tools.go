@@ -1,6 +1,10 @@
 package common
 
 import (
+	"Rhine-Cloud-Driver/logic/log"
+	"github.com/speps/go-hashids/v2"
+	"go.uber.org/zap"
+
 	// log "Rhine-Cloud-Driver/logic/log"
 	"math/rand"
 	"sync"
@@ -20,6 +24,38 @@ func RandStringRunes(n int) string {
 		b[i] = letterBytes[rand.Intn(len(letterBytes))]
 	}
 	return string(b)
+}
+
+func HashEncode(v []int) (string, error) {
+	hd := hashids.NewData()
+	hd.Salt = "this is my salt"
+	h, err := hashids.NewWithData(hd)
+	if err != nil {
+		log.Logger.Error("hashID new error:", zap.Error(err))
+		return "", NewError(ERROR_COMMON_TOOLS_HASH_ENCODE_FAILED)
+	}
+	e, err := h.Encode(v)
+	if err != nil {
+		log.Logger.Error("encode new error:", zap.Error(err))
+		return "", NewError(ERROR_COMMON_TOOLS_HASH_ENCODE_FAILED)
+	}
+	return e, nil
+}
+
+func HashDecode(hashValue string) ([]int, error) {
+	hd := hashids.NewData()
+	hd.Salt = "this is my salt"
+	h, err := hashids.NewWithData(hd)
+	if err != nil {
+		log.Logger.Error("hashID new error:", zap.Error(err))
+		return nil, NewError(ERROR_COMMON_TOOLS_HASH_DECODE_FAILED)
+	}
+	d, err := h.DecodeWithError(hashValue)
+	if err != nil {
+		log.Logger.Error("decode new error:", zap.Error(err))
+		return nil, NewError(ERROR_COMMON_TOOLS_HASH_DECODE_FAILED)
+	}
+	return d, nil
 }
 
 // 雪花算法生成ID

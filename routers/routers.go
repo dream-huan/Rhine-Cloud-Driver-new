@@ -25,17 +25,19 @@ func InitRouter(cf config.Config) *gin.Engine {
 	// 注册和登录路由
 	r.POST("login", controllers.UserLogin)
 	r.POST("register", controllers.UserRegister)
+	r.POST("s/:key", controllers.GetShareDetail)
 
 	// 接下来需要鉴权
 	// 用户路由
 	userRouter := r.Group("")
 	userRouter.Use(middleware.TokenVerify())
 	{
-		userRouter.GET("getinfo", controllers.GetUserDetail)
+		userRouter.GET("get_info", controllers.GetUserDetail)
 		// 文件路由
 		fileRouter := r.Group("")
 		fileRouter.POST("directory", controllers.GetMyFiles)
-		fileRouter.POST("taskcreate", controllers.UploadTaskCreate)
+		fileRouter.POST("mkdir", controllers.Mkdir)
+		fileRouter.POST("task_create", controllers.UploadTaskCreate)
 		fileRouter.POST("upload", controllers.Upload)
 		fileRouter.POST("merge", controllers.MergeFileChunks)
 	}

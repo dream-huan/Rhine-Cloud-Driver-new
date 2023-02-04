@@ -3,6 +3,8 @@ package model
 import (
 	"Rhine-Cloud-Driver/common"
 	"Rhine-Cloud-Driver/logic/redis"
+	"gorm.io/gorm"
+	"regexp"
 	"strconv"
 	"time"
 )
@@ -12,7 +14,6 @@ type File struct {
 	Uid         uint64 `json:"uid,omitempty"`
 	FileName    string `json:"file_name,omitempty" gorm:"size:255;index:idx_file_name"`
 	MD5         string `json:"md5,omitempty" gorm:"index:idx_md5"`
-	Path        string `json:"path,omitempty"`
 	FileStorage uint64 `json:"file_storage,omitempty"`
 	ParentID    uint64 `json:"parent_id,omitempty" gorm:"index:idx_parent_id"`
 	CreateTime  string `json:"create_time,omitempty"`
@@ -64,7 +65,7 @@ func CheckPathValid(uid uint64, path string) (bool, uint64) {
 			if pathName == "" || len(pathName) > 255 {
 				return false, 0
 			}
-			err := DB.Table("files").Select("file_id").Where("parent_id=? and file_name=? and is_dir=true and valid=true", fileID, pathName).First(&fileID).Error
+			err := DB.Table("files").Select("file_id").Where("parent_id=? and file_name=? and is_dir=true and valid=true", fileID, pathName).Find(&fileID).Error
 			if err != nil || fileID == 0 {
 				return false, 0
 			}
@@ -92,12 +93,12 @@ func BuildFileSystem(uid uint64, path string, limit, offset int) (count int64, d
 		return 0, 0, nil, common.NewError(common.ERROR_FILE_COUNT_EXCEED_LIMIT)
 	}
 	dirFileID = fileID
-	DB.Table("files").Where("parent_id=?", fileID).Count(&count)
-	DB.Table("files").Where("parent_id=?", fileID).Offset(offset).Limit(limit).Find(&files)
+	DB.Table("files").Where("parent_id=? and valid=1", fileID).Count(&count)
+	DB.Table("files").Where("parent_id=? and valid=1", fileID).Offset(offset).Limit(limit).Find(&files)
 	return
 }
 
-func UploadPrepare(md5 string, chunkNum int64, uid uint64, fileSize uint64) (bool, string, string, error) {
+func UploadPrepare(md5, fileName string, chunkNum int64, uid, fileSize, targetDirID uint64) (bool, string, string, error) {
 	// 校验容量是否充足
 	var nowUser User
 	DB.Table("users").Where("uid=?", uid).Find(&nowUser)
@@ -113,6 +114,11 @@ func UploadPrepare(md5 string, chunkNum int64, uid uint64, fileSize uint64) (boo
 	var count int64
 	DB.Table("files").Where("md5=?", md5).Count(&count)
 	if count > 0 {
+		// 存在AddFile即可
+		err := AddFile(uid, md5, fileName, fileSize, targetDirID)
+		if err != nil {
+			return true, "", "", err
+		}
 		return true, "", "", nil
 	}
 	// 先判断是否存在该md5
@@ -208,19 +214,93 @@ func AddFile(uid uint64, md5 string, fileName string, fileSize, parentID uint64)
 	if err != nil || fileDir.Uid != uid {
 		return common.NewError(common.ERROR_FILE_STORE_PATH_INVALID)
 	}
-	err = DB.Table("files").Create(&File{
+	// 开启事务来增加
+	tx := DB.Begin()
+	// 不允许同一目录有相同文件名的文件
+	var count int64
+	tx.Table("files").Where("file_name=? and parent_id=? and is_dir=false", fileName, parentID).Count(&count)
+	if count > 0 {
+		tx.Rollback()
+		return common.NewError(common.ERROR_FILE_SAME_NAME)
+	}
+	err = tx.Table("files").Create(&File{
 		Uid:         uid,
 		MD5:         md5,
 		FileName:    fileName,
 		FileStorage: fileSize,
 		ParentID:    parentID,
+		CreateTime:  time.Now().Format("2006-01-02 15:04:05"),
+		Valid:       true,
+		IsDir:       false,
 	}).Error
 	if err != nil {
+		tx.Rollback()
 		return err
+	}
+	// 增加容量
+	err = tx.Table("users").Where("uid=?", uid).Update("used_storage", gorm.Expr("used_storage+?", fileSize)).Error
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	tx.Commit()
+	return nil
+}
+
+func Mkdir(uid uint64, fileName string, parentID uint64) error {
+	// 检验文件夹名称是否非法
+	if fileName == "" {
+		return common.NewError(common.ERROR_FILE_NAME_INVALID)
+	}
+	matched, err := regexp.MatchString("[\\/+?:*<>!|]", fileName)
+	if err != nil || matched == true {
+		return common.NewError(common.ERROR_FILE_NAME_INVALID)
+	}
+	// 简验parentID是否属于该UID，并且该ID的is_dir和valid为true
+	var targetDir File
+	err = DB.Table("files").Where("file_id=?", parentID).First(&targetDir).Error
+	if err != nil || targetDir.Uid != uid || targetDir.IsDir == false || targetDir.Valid == false {
+		return common.NewError(common.ERROR_FILE_STORE_PATH_INVALID)
+	}
+	// 同名不允许在同一目录
+	var count int64
+	err = DB.Table("files").Where("file_name=? and parent_id=? and valid=true and is_dir=true", fileName, parentID).Count(&count).Error
+	if err != nil || count > 0 {
+		return common.NewError(common.ERROR_FILE_SAME_NAME)
+	}
+	err = DB.Table("files").Create(&File{
+		Uid:        uid,
+		FileName:   fileName,
+		ParentID:   parentID,
+		CreateTime: time.Now().Format("2006-01-02 15:04:05"),
+		IsDir:      true,
+		Valid:      true,
+	}).Error
+	if err != nil {
+		return common.NewError(common.ERROR_DB_WRITE_FAILED)
 	}
 	return nil
 }
 
-func Mkdir(uid uint64, fileName string, parentID uint64) {
+func RemoveFiles(uid uint64, fileID []uint64) {
+	// 验证该文件是否所属该用户
+	var targetFile File
+	err := DB.Table("files").Where("file_id=?", fileID).Find(&targetFile).Error
+	if err != nil {
+		// 文件不存在
+	}
+	// 恢复用户的所属空间
+
+	// 将valid置为0
+
+	// 给kafka传递信息，是否可以将该文件删除
+
+}
+
+func MoveFiles() {
+
+}
+
+func DownloadFile() {
 
 }

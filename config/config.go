@@ -43,3 +43,7 @@ type LogConfig struct {
 	Compress    bool   `yaml:"compress"`
 	LogConsole  bool   `yaml:"log_console"`
 }
+
+type ShareKeyHaltConfig struct {
+	Key string `yaml:"key"`
+}

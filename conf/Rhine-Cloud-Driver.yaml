@@ -28,3 +28,6 @@ log:
   service_name: rhine-cloud-driver
   level: -1   # -1: debug 0:info 2:warn 3:error 
   log_console: true  # false: only log to log file
+
+  ShareKeyHalt:
+    key: "123"

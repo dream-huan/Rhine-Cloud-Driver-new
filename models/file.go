@@ -65,7 +65,7 @@ func CheckPathValid(uid uint64, path string) (bool, uint64) {
 			if pathName == "" || len(pathName) > 255 {
 				return false, 0
 			}
-			err := DB.Table("files").Select("file_id").Where("parent_id=? and file_name=? and is_dir=true and valid=true", fileID, pathName).Find(&fileID).Error
+			err := DB.Table("files").Select("file_id").Where("parent_id=? and file_name=? and is_dir=true and valid=true", fileID, pathName).First(&fileID).Error
 			if err != nil || fileID == 0 {
 				return false, 0
 			}

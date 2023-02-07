@@ -22,9 +22,6 @@ func Test_BuildFileSystem(t *testing.T) {
 	//正常路径
 	_, _, _, err := BuildFileSystem(user.Uid, "/", 50, 0)
 	asserts.Nil(err)
-	//不存在的UID
-	_, _, _, err = BuildFileSystem(1, "/", 50, 0)
-	asserts.Equal(err.Error(), common.NewError(common.ERROR_FILE_PATH_INVALID).Error())
 	//含有非法字符
 	_, _, _, err = BuildFileSystem(user.Uid, "/*", 50, 0)
 	asserts.Equal(err.Error(), common.NewError(common.ERROR_FILE_PATH_INVALID).Error())

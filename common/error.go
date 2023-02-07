@@ -59,6 +59,17 @@ const (
 	ERROR_FILE_STORE_PATH_INVALID = 700007
 	ERROR_FILE_NAME_INVALID       = 700008
 	ERROR_FILE_SAME_NAME          = 700009
+	ERROR_FILE_TARGETDIR_INVALID  = 700010
+	ERROR_FILE_MOVEFILE_FAILED    = 700011
+	ERROR_FILE_INVALID            = 700012
+)
+
+// 分享相关
+const (
+	ERROR_SHARE_NOT_EXIST      = 800001
+	ERROR_SHARE_PASSWORD_WRONG = 800002
+	ERROR_SHARE_FILE_INVALID   = 800003
+	ERROR_SHARE_SAME_FILES     = 800004
 )
 
 var errMap = map[int]string{
@@ -91,6 +102,13 @@ var errMap = map[int]string{
 	ERROR_FILE_SAME_NAME:                  "该目录下有文件/文件夹与新创建文件/文件夹同名",
 	ERROR_COMMON_TOOLS_HASH_ENCODE_FAILED: "哈希值生成失败",
 	ERROR_COMMON_TOOLS_HASH_DECODE_FAILED: "哈希值解码失败",
+	ERROR_FILE_TARGETDIR_INVALID:          "目标文件夹你无权访问",
+	ERROR_FILE_MOVEFILE_FAILED:            "要移动的文件失效或与目标文件夹有同名文件",
+	ERROR_SHARE_NOT_EXIST:                 "无效的分享链接或分享已过期",
+	ERROR_SHARE_PASSWORD_WRONG:            "输入的密码错误",
+	ERROR_SHARE_FILE_INVALID:              "要分享的文件你无法访问",
+	ERROR_FILE_INVALID:                    "文件不存在或你无法访问",
+	ERROR_SHARE_SAME_FILES:                "该文件你已经分享过了",
 }
 
 func NewError(errorNum int) error {

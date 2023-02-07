@@ -6,24 +6,25 @@ import (
 	"gorm.io/gorm"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 )
 
 type File struct {
-	FileID      uint64 `json:"file_id" gorm:"primaryKey;auto_increment"`
-	Uid         uint64 `json:"uid,omitempty"`
-	FileName    string `json:"file_name,omitempty" gorm:"size:255;index:idx_file_name"`
-	MD5         string `json:"md5,omitempty" gorm:"index:idx_md5"`
-	FileStorage uint64 `json:"file_storage,omitempty"`
-	ParentID    uint64 `json:"parent_id,omitempty" gorm:"index:idx_parent_id"`
 	CreateTime  string `json:"create_time,omitempty"`
-	Valid       bool   `json:"valid,omitempty"`
+	FileID      uint64 `json:"file_id" gorm:"primaryKey;auto_increment"`
+	FileName    string `json:"file_name,omitempty" gorm:"size:255"`
+	FileStorage uint64 `json:"file_storage,omitempty"`
 	IsDir       bool   `json:"is_dir,omitempty"`
+	MD5         string `json:"md5,omitempty" gorm:"index:idx_md5"`
+	ParentID    uint64 `json:"parent_id,omitempty" gorm:"index:idx_parent_id"`
+	Path        string `json:"path,omitempty" gorm:"index:idx_path"`
+	Uid         uint64 `json:"uid,omitempty"`
+	Valid       bool   `json:"valid,omitempty"`
 }
 
 var invalidChar = map[string]bool{
 	"?":  true,
-	"/":  true,
 	"*":  true,
 	"\"": true,
 	"|":  true,
@@ -38,52 +39,84 @@ var invalidChar = map[string]bool{
 // 2.单个路径名长度不能超过255
 // 3./与/之间不能为空
 // 若合法，err置为空，返回路径切片。若不合法，返回err和空切片
-func CheckPathValid(uid uint64, path string) (bool, uint64) {
-	pathName := ""
-	// path类似于/uploads/study/20230102/
-	// path首位和末尾非/自动补/
+//func CheckPathValid(uid uint64, path string, parentID uint64) (bool, uint64) {
+//	pathName := ""
+//	// path类似于/uploads/study/20230102/
+//	// path首位和末尾非/自动补/
+//	if path[0] != '/' {
+//		path = "/" + path
+//	}
+//	if path[len(path)-1] != '/' {
+//		path = path + "/"
+//	}
+//	// 边检查边在数据库中进行检索
+//	// 拿到该用户的根目录的fileID
+//	var file File
+//	var lastFileID uint64
+//	err := DB.Table("files").Where("uid=? and parent_id=?", uid, parentID).First(&file).Error
+//	if err != nil || file.FileID == 0 {
+//		//此路径不存在
+//		return false, 0
+//	}
+//	lastFileID = file.FileID
+//	for i, v := range []rune(path) {
+//		// 首位肯定是/无需校验
+//		if i == 0 {
+//			continue
+//		}
+//		if v == '/' {
+//			if pathName == "" || len(pathName) > 255 {
+//				return false, 0
+//			}
+//			file = File{}
+//			err = DB.Table("files").Where("parent_id=? and file_name=? and is_dir=true and valid=true", lastFileID, pathName).First(&file).Error
+//			if err != nil || file.FileID == 0 {
+//				return false, 0
+//			}
+//			pathName = ""
+//			lastFileID = file.FileID
+//		} else {
+//			if invalidChar[string(v)] == true {
+//				return false, 0
+//			}
+//			pathName = pathName + string(v)
+//		}
+//	}
+//	return true, file.FileID
+//}
+
+func CheckPathValid(uid uint64, path, previousPath string) (bool, uint64) {
 	if path[0] != '/' {
 		path = "/" + path
 	}
 	if path[len(path)-1] != '/' {
 		path = path + "/"
 	}
-	// 边检查边在数据库中进行检索
-	// 拿到该用户的根目录的fileID
-	var fileID uint64
-	DB.Table("files").Select("file_id").Where("uid=? and parent_id=?", uid, 0).Find(&fileID)
-	if fileID == 0 {
-		//此路径不存在
+	// 找它的上一层
+	// 特殊情况特殊处理
+	dirName := ""
+	if path != "/" {
+		splitValue := strings.Split(path, "/")
+		for i := range splitValue {
+			if i == len(splitValue)-2 {
+				dirName = splitValue[i]
+				break
+			}
+			previousPath += splitValue[i] + "/"
+		}
+	}
+	file := File{}
+	err := DB.Table("files").Where("uid=? and path=? and file_name=?", uid, previousPath, dirName).First(&file).Error
+	if err != nil || file.FileID == 0 {
 		return false, 0
 	}
-	for i := range []rune(path) {
-		// 首位肯定是/无需校验
-		if i == 0 {
-			continue
-		}
-		if path[i] == '/' {
-			if pathName == "" || len(pathName) > 255 {
-				return false, 0
-			}
-			err := DB.Table("files").Select("file_id").Where("parent_id=? and file_name=? and is_dir=true and valid=true", fileID, pathName).First(&fileID).Error
-			if err != nil || fileID == 0 {
-				return false, 0
-			}
-			pathName = ""
-		} else {
-			if invalidChar[string(path[i])] == true {
-				return false, 0
-			}
-			pathName = pathName + string(path[i])
-		}
-	}
-	return true, fileID
+	return true, file.FileID
 }
 
 func BuildFileSystem(uid uint64, path string, limit, offset int) (count int64, dirFileID uint64, files []File, err error) {
 	err = nil
 	// 判断路径结果是否合法
-	isValid, fileID := CheckPathValid(uid, path)
+	isValid, fileID := CheckPathValid(uid, path, "")
 	if isValid == false {
 		return 0, 0, nil, common.NewError(common.ERROR_FILE_PATH_INVALID)
 	}
@@ -210,7 +243,7 @@ func AddFile(uid uint64, md5 string, fileName string, fileSize, parentID uint64)
 	}
 	// 校验parentID是否属于该UID本人和是否存在
 	var fileDir File
-	err := DB.Table("files").Select("uid").Where("file_id=? and is_dir=1", parentID).First(&fileDir).Error
+	err := DB.Table("files").Where("file_id=? and is_dir=1", parentID).First(&fileDir).Error
 	if err != nil || fileDir.Uid != uid {
 		return common.NewError(common.ERROR_FILE_STORE_PATH_INVALID)
 	}
@@ -232,6 +265,7 @@ func AddFile(uid uint64, md5 string, fileName string, fileSize, parentID uint64)
 		CreateTime:  time.Now().Format("2006-01-02 15:04:05"),
 		Valid:       true,
 		IsDir:       false,
+		Path:        fileDir.Path + fileDir.FileName + "/",
 	}).Error
 	if err != nil {
 		tx.Rollback()
@@ -275,6 +309,7 @@ func Mkdir(uid uint64, fileName string, parentID uint64) error {
 		CreateTime: time.Now().Format("2006-01-02 15:04:05"),
 		IsDir:      true,
 		Valid:      true,
+		Path:       targetDir.Path + targetDir.FileName + "/",
 	}).Error
 	if err != nil {
 		return common.NewError(common.ERROR_DB_WRITE_FAILED)
@@ -282,25 +317,87 @@ func Mkdir(uid uint64, fileName string, parentID uint64) error {
 	return nil
 }
 
-func RemoveFiles(uid uint64, fileID []uint64) {
+func RemoveFiles(uid uint64, fileID []uint64) error {
 	// 验证该文件是否所属该用户
 	var targetFile File
 	err := DB.Table("files").Where("file_id=?", fileID).Find(&targetFile).Error
 	if err != nil {
 		// 文件不存在
 	}
+	// 验证文件是否正被分享，如果是，删除该分享
+
 	// 恢复用户的所属空间
 
 	// 将valid置为0
 
 	// 给kafka传递信息，是否可以将该文件删除
-
+	return nil
 }
 
-func MoveFiles() {
-
+func MoveFiles(uid uint64, moveFiles []uint64, targetDirID uint64) error {
+	tx := DB.Begin()
+	// 验证移动的文件和目标文件夹ID属于该用户，并且该文件夹下与要移动的文件无重名
+	var targetDir File
+	err := tx.Table("files").Where("file_id=? and uid=? and is_dir=true and valid=true", targetDirID, uid).Find(&targetDir).Error
+	if err != nil || targetDir.FileID == 0 {
+		tx.Rollback()
+		return common.NewError(common.ERROR_FILE_TARGETDIR_INVALID)
+	}
+	var oldPathName string
+	var newPathName string
+	for _, v := range moveFiles {
+		count := int64(0)
+		var file File
+		err := tx.Table("files").Where("file_id=?", v).First(&file).Error
+		if err != nil || file.Uid != uid {
+			tx.Rollback()
+			return common.NewError(common.ERROR_FILE_MOVEFILE_FAILED)
+		}
+		tx.Table("files").Where("parent_id=? and file_name=? and is_dir=? and valid=true", targetDirID, file.FileName, file.IsDir).Count(&count)
+		if count > 0 {
+			tx.Rollback()
+			return common.NewError(common.ERROR_FILE_MOVEFILE_FAILED)
+		}
+		if file.IsDir == true {
+			// 对子文件和子文件夹更改path
+			oldPathName = file.Path + file.FileName + "/"
+			var subFiles []File
+			tx.Table("files").Where("uid=? and path like ? and valid=true", uid, oldPathName+"%").Find(&subFiles)
+			oldPathName = file.Path
+			newPathName = targetDir.Path + targetDir.FileName + "/"
+			for i := range subFiles {
+				subFiles[i].Path = strings.Replace(subFiles[i].Path, oldPathName, newPathName, 1)
+				err = tx.Table("files").Where("file_id = ?", subFiles[i].FileID).Update("path", subFiles[i].Path).Error
+				if err != nil {
+					tx.Rollback()
+					return common.NewError(common.ERROR_FILE_MOVEFILE_FAILED)
+				}
+			}
+		}
+		// 更改当前文件的path
+		file.Path = targetDir.Path + targetDir.FileName + "/"
+		err = tx.Table("files").Where("file_id = ?", file.FileID).Update("path", file.Path).Error
+		if err != nil {
+			tx.Rollback()
+			return common.NewError(common.ERROR_FILE_MOVEFILE_FAILED)
+		}
+		// 更改parent_id
+		err = tx.Table("files").Where("file_id = ?", v).Update("parent_id", targetDirID).Error
+		if err != nil {
+			tx.Rollback()
+			return common.NewError(common.ERROR_FILE_MOVEFILE_FAILED)
+		}
+	}
+	tx.Commit()
+	return nil
 }
 
-func DownloadFile() {
-
+func DownloadFile(uid, fileID uint64) (string, error) {
+	// 验证是否是本人的文件
+	var file File
+	err := DB.Table("files").Where("file_id=?", fileID).Find(&file).Error
+	if err != nil || file.Uid != uid {
+		return "", common.NewError(common.ERROR_FILE_INVALID)
+	}
+	return file.MD5, nil
 }

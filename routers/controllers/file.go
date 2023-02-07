@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"strconv"
 )
@@ -31,6 +32,7 @@ type FileSystem struct {
 	CreateTime  string `json:"create_time"`
 	FileStorage uint64 `json:"file_storage,omitempty"`
 	IsDir       bool   `json:"is_dir"`
+	Path        string `json:"path,omitempty"`
 }
 
 func GetMyFiles(c *gin.Context) {
@@ -41,7 +43,8 @@ func GetMyFiles(c *gin.Context) {
 		makeResult(c, 200, err, nil)
 		return
 	}
-	count, dirFileID, originFiles, err := model.BuildFileSystem(uid, data.Path, 50, 0)
+	path, _ := url.QueryUnescape(data.Path)
+	count, dirFileID, originFiles, err := model.BuildFileSystem(uid, path, 50, 0)
 	if err != nil {
 		makeResult(c, 200, err, nil)
 		return
@@ -55,6 +58,7 @@ func GetMyFiles(c *gin.Context) {
 			FileStorage: originFiles[i].FileStorage,
 			IsDir:       originFiles[i].IsDir,
 			CreateTime:  originFiles[i].CreateTime,
+			Path:        originFiles[i].Path,
 		}
 	}
 	resp := GetFileSystemResponse{
@@ -184,5 +188,22 @@ func Mkdir(c *gin.Context) {
 		return
 	}
 	err := model.Mkdir(uid, data.FileName, data.ParentID)
+	makeResult(c, 200, err, nil)
+}
+
+type MoveFilesRequest struct {
+	TargetDirID uint64   `json:"target_dir_id"`
+	FileIDList  []uint64 `json:"file_id_list"`
+}
+
+func MoveFiles(c *gin.Context) {
+	token, _ := c.Cookie("token")
+	_, uid := jwt.TokenGetUid(token)
+	var data MoveFilesRequest
+	if err := c.ShouldBindJSON(&data); err != nil {
+		makeResult(c, 200, err, nil)
+		return
+	}
+	err := model.MoveFiles(uid, data.FileIDList, data.TargetDirID)
 	makeResult(c, 200, err, nil)
 }

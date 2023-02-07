@@ -136,6 +136,7 @@ func (user *User) AddUser() error {
 		return err
 	}
 	user.CreateTime = time.Now().Format("2006-01-02 15:04:05")
+	user.TotalStorage = 100000000
 	tx := DB.Session(&gorm.Session{})
 	err = tx.Table("users").Create(&user).Error
 	if err != nil {
@@ -151,10 +152,11 @@ func (user *User) AddUser() error {
 	}
 	// 插入files表
 	err = tx.Table("files").Create(&File{
-		Uid:      user.Uid,
-		ParentID: 0,
-		IsDir:    true,
-		Valid:    true,
+		Uid:        user.Uid,
+		ParentID:   0,
+		IsDir:      true,
+		Valid:      true,
+		CreateTime: time.Now().Format("2006-01-02 15:04:05"),
 	}).Error
 	if err != nil {
 		tx.Rollback()

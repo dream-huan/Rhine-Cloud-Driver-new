@@ -29,6 +29,7 @@ func RandStringRunes(n int) string {
 func HashEncode(v []int) (string, error) {
 	hd := hashids.NewData()
 	hd.Salt = "this is my salt"
+	hd.MinLength = 4
 	h, err := hashids.NewWithData(hd)
 	if err != nil {
 		log.Logger.Error("hashID new error:", zap.Error(err))
@@ -42,20 +43,17 @@ func HashEncode(v []int) (string, error) {
 	return e, nil
 }
 
-func HashDecode(hashValue string) ([]int, error) {
+func HashDecode(hashValue string) (uint64, error) {
 	hd := hashids.NewData()
 	hd.Salt = "this is my salt"
+	hd.MinLength = 4
 	h, err := hashids.NewWithData(hd)
 	if err != nil {
 		log.Logger.Error("hashID new error:", zap.Error(err))
-		return nil, NewError(ERROR_COMMON_TOOLS_HASH_DECODE_FAILED)
+		return 0, NewError(ERROR_COMMON_TOOLS_HASH_DECODE_FAILED)
 	}
-	d, err := h.DecodeWithError(hashValue)
-	if err != nil {
-		log.Logger.Error("decode new error:", zap.Error(err))
-		return nil, NewError(ERROR_COMMON_TOOLS_HASH_DECODE_FAILED)
-	}
-	return d, nil
+	d, _ := h.DecodeWithError(hashValue)
+	return uint64(d[0]), nil
 }
 
 // 雪花算法生成ID

@@ -1,10 +1,12 @@
 package model
 
 import (
+	"Rhine-Cloud-Driver/logic/redis"
 	"database/sql"
 
-	_ "Rhine-Cloud-Driver/common"
+	"Rhine-Cloud-Driver/common"
 	"Rhine-Cloud-Driver/config"
+	"Rhine-Cloud-Driver/logic/jwt"
 	log "Rhine-Cloud-Driver/logic/log"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -15,6 +17,8 @@ import (
 
 var DB *gorm.DB
 var db *sql.DB
+
+// todo:设立钩子，进行权限认证
 
 func initMysql(cf config.MysqlConfig) {
 	// var err error
@@ -35,9 +39,16 @@ func initMysql(cf config.MysqlConfig) {
 	db.SetMaxOpenConns(100)
 
 	// 自动建表+建立索引
-	DB.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&User{})
+	DB.Set("gorm:table_options", "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4").AutoMigrate(&User{}, &Group{}, &File{}, &Share{})
+}
+
+func initJwt(cf config.JwtConfig) {
+	jwt.Init(cf.Key)
 }
 
 func Init(cf config.Config) {
 	initMysql(cf.MysqlManager)
+	initJwt(cf.JwtKey)
+	common.NewWorker(1)
+	redis.InitRedis(cf.RedisManager)
 }

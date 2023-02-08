@@ -10,6 +10,7 @@ services:
       - ./rhine-cloud-driver/uploads:/rhine-cloud-driver/uploads
       - ./rhine-cloud-driver/Rhine-Cloud-Driver.yaml:/rhine-cloud-driver/conf/Rhine-Cloud-Driver.yaml
       - ./rhine-cloud-driver/avatar:/rhine-cloud-driver/avatar
+      - ./rhine-cloud-driver/logs:/rhine-cloud-driver/logs
     depends_on:
       - mysql
       - redis
@@ -21,6 +22,7 @@ services:
     environment:
       - MYSQL_ROOT_PASSWORD=your_mysql_password
       - MYSQL_TCP_PORT=3306
+      - MYSQL_DATABASE=project
   redis:
     container_name: redis
     image: redis:7.0

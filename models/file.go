@@ -356,7 +356,7 @@ func MoveFiles(uid uint64, moveFiles []uint64, targetDirID uint64) error {
 		tx.Table("files").Where("parent_id=? and file_name=? and is_dir=? and valid=true", targetDirID, file.FileName, file.IsDir).Count(&count)
 		if count > 0 {
 			tx.Rollback()
-			return common.NewError(common.ERROR_FILE_MOVEFILE_FAILED)
+			return common.NewError(common.ERROR_FILE_TARGETDIR_SAME_FILES)
 		}
 		if file.IsDir == true {
 			// 对子文件和子文件夹更改path
@@ -400,4 +400,31 @@ func DownloadFile(uid, fileID uint64) (string, error) {
 		return "", common.NewError(common.ERROR_FILE_INVALID)
 	}
 	return file.MD5, nil
+}
+
+func GetFileInfo(fileID uint64, info string) (interface{}, error) {
+	file := File{}
+	err := DB.Table("files").Select(info).Where("file_id=?", fileID).Find(&file).Error
+	if err != nil {
+		return nil, common.NewError(common.ERROR_FILE_NOT_EXISTS)
+	}
+	switch info {
+	case "create_time":
+		return file.CreateTime, nil
+	case "file_name":
+		return file.FileName, nil
+	case "file_storage":
+		return file.FileStorage, nil
+	case "is_dir":
+		return file.IsDir, nil
+	case "md5":
+		return file.MD5, nil
+	case "parent_id":
+		return file.ParentID, nil
+	case "uid":
+		return file.Uid, nil
+	case "valid":
+		return file.Valid, nil
+	}
+	return nil, nil
 }

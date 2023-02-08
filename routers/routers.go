@@ -44,6 +44,8 @@ func InitRouter(cf config.Config) *gin.Engine {
 		shareRouter := r.Group("")
 		shareRouter.POST("new_share", controllers.CreateNewShare)
 		shareRouter.POST("transfer_files", controllers.TransferFiles)
+		shareRouter.POST("cancel_share", controllers.CancelShare)
+		shareRouter.POST("get_my_share", controllers.GetMyShare)
 	}
 
 	// 管理员路由

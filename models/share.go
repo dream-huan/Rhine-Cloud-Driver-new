@@ -4,18 +4,21 @@ import (
 	"Rhine-Cloud-Driver/common"
 	"crypto/md5"
 	"encoding/hex"
+	"gorm.io/gorm"
 	"strings"
 	"time"
 )
 
 type Share struct {
-	ShareID    uint64 `json:"share_id" gorm:"primaryKey;auto_increment"`
-	Uid        uint64 `json:"uid" gorm:"index:idx_uid"`
-	FileID     uint64 `json:"file_id"`
-	ExpireTime string `json:"expire_time"`
-	CreateTime string `json:"create_time"`
-	Password   string `json:"password"`
-	Valid      bool   `json:"valid"`
+	ShareID       uint64 `json:"share_id" gorm:"primaryKey;auto_increment"`
+	Uid           uint64 `json:"uid" gorm:"index:idx_uid"`
+	FileID        uint64 `json:"file_id"`
+	ExpireTime    string `json:"expire_time"`
+	CreateTime    string `json:"create_time"`
+	Password      string `json:"password"`
+	Valid         bool   `json:"valid"`
+	ViewTimes     uint64 `json:"view_times"`
+	DownloadTimes uint64 `json:"download_times"`
 }
 
 func CheckSharePathValid(path string, uid, fileID uint64) ([]File, error) {
@@ -96,6 +99,10 @@ func TransferFiles(uid, shareID uint64, moveFileList []uint64, targetDirID uint6
 		tx.Rollback()
 		return common.NewError(common.ERROR_FILE_TARGETDIR_INVALID)
 	}
+	// 拿到用户信息
+	user := User{}
+	tx.Table("users").Where("uid=?", uid).Find(&user)
+	allFilesStorage := uint64(0)
 	for _, v := range moveFileList {
 		thisFile := File{}
 		err = tx.Table("files").Where("file_id=?", v).Find(&thisFile).Error
@@ -122,8 +129,13 @@ func TransferFiles(uid, shareID uint64, moveFileList []uint64, targetDirID uint6
 			return common.NewError(common.ERROR_FILE_INVALID)
 		}
 
-		// 空间判定没做，今天完成
-
+		// 目标文件夹是否有同名文件
+		count := int64(0)
+		tx.Table("files").Where("parent_id=? and file_name=? and valid=true and is_dir=?", targetDirID, thisFile.FileName, thisFile.IsDir).Count(&count)
+		if count > 0 {
+			tx.Rollback()
+			return common.NewError(common.ERROR_FILE_TARGETDIR_SAME_FILES)
+		}
 		// 先建立自己
 		newFile := File{
 			Uid:         uid,
@@ -140,7 +152,7 @@ func TransferFiles(uid, shareID uint64, moveFileList []uint64, targetDirID uint6
 			parentMap[thisFile.FileID] = newFile.FileID
 			// 拿到全部属于该前缀的文件
 			var subFiles []File
-			tx.Table("files").Where("uid = ? and path like ?", thisFile.Uid, thisFile.Path+thisFile.FileName+"/"+"%").Order("is_dir").Find(&subFiles)
+			tx.Table("files").Where("uid = ? and path like ?", thisFile.Uid, thisFile.Path+thisFile.FileName+"/%").Order("is_dir").Find(&subFiles)
 			for i := range subFiles {
 				// 替换前缀
 				newSubFile := File{
@@ -156,9 +168,27 @@ func TransferFiles(uid, shareID uint64, moveFileList []uint64, targetDirID uint6
 				tx.Table("files").Create(&newSubFile)
 				if subFiles[i].IsDir == true {
 					parentMap[subFiles[i].FileID] = newSubFile.FileID
+				} else {
+					if user.UsedStorage+allFilesStorage > user.TotalStorage {
+						tx.Rollback()
+						return common.NewError(common.ERROR_USER_STORAGE_EXCEED)
+					}
+					allFilesStorage += subFiles[i].FileStorage
 				}
 			}
+		} else {
+			if user.UsedStorage+allFilesStorage > user.TotalStorage {
+				tx.Rollback()
+				return common.NewError(common.ERROR_USER_STORAGE_EXCEED)
+			}
+			allFilesStorage += newFile.FileStorage
 		}
+	}
+	// 容量增加
+	err = tx.Table("users").Where("uid=?", uid).Update("used_storage", gorm.Expr("used_storage+?", allFilesStorage)).Error
+	if err != nil {
+		tx.Rollback()
+		return common.NewError(common.ERROR_USER_STORAGE_EXCEED)
 	}
 	tx.Commit()
 	return nil

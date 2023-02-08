@@ -122,3 +122,70 @@ func TransferFiles(c *gin.Context) {
 	}
 	makeResult(c, 200, nil, nil)
 }
+
+type CancelShareRequest struct {
+	ShareKey string `json:"share_key"`
+}
+
+func CancelShare(c *gin.Context) {
+	token, _ := c.Cookie("token")
+	_, uid := jwt.TokenGetUid(token)
+	var data CancelShareRequest
+	if err := c.ShouldBindJSON(&data); err != nil {
+		makeResult(c, 200, err, nil)
+		return
+	}
+	// 从shareKey还原出shareID
+	shareID, err := common.HashDecode(data.ShareKey)
+	if err != nil {
+		makeResult(c, 200, common.NewError(common.ERROR_COMMON_TOOLS_HASH_DECODE_FAILED), nil)
+		return
+	}
+	err = model.CancelShare(uid, shareID)
+	if err != nil {
+		makeResult(c, 200, err, nil)
+		return
+	}
+	makeResult(c, 200, nil, nil)
+}
+
+type GetMyShareResponse struct {
+	Lists []ShareDetail
+}
+
+type ShareDetail struct {
+	ShareKey      string `json:"share_key"`
+	ExpireTime    string `json:"expire_time"`
+	FileName      string `json:"file_name"`
+	DownloadTimes uint64 `json:"download_times"`
+	ViewTimes     uint64 `json:"view_times"`
+	Password      string `json:"password"`
+}
+
+func GetMyShare(c *gin.Context) {
+	token, _ := c.Cookie("token")
+	_, uid := jwt.TokenGetUid(token)
+	list := model.GetMyShare(uid)
+	shareList := make([]ShareDetail, len(list))
+	for i := range list {
+		fileName, err := model.GetFileInfo(list[i].FileID, "file_name")
+		if err != nil {
+			makeResult(c, 200, err, nil)
+			return
+		}
+		shareKey, err := common.HashEncode([]int{int(list[i].ShareID)})
+		if err != nil {
+			makeResult(c, 200, common.NewError(common.ERROR_COMMON_TOOLS_HASH_ENCODE_FAILED), nil)
+			return
+		}
+		shareList[i] = ShareDetail{
+			FileName:      fileName.(string),
+			ExpireTime:    list[i].ExpireTime,
+			ShareKey:      shareKey,
+			DownloadTimes: list[i].DownloadTimes,
+			ViewTimes:     list[i].ViewTimes,
+			Password:      list[i].Password,
+		}
+	}
+	makeResult(c, 200, nil, GetMyShareResponse{shareList})
+}

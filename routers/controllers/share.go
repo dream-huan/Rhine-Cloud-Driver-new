@@ -27,7 +27,7 @@ func GetShareDetail(c *gin.Context) {
 		return
 	}
 	// 从shareKey还原出shareID
-	shareID, err := common.HashDecode(data.ShareKey)
+	shareID, err := common.HashDecode(data.ShareKey, 4)
 	if err != nil {
 		makeResult(c, 200, common.NewError(common.ERROR_COMMON_TOOLS_HASH_DECODE_FAILED), nil)
 		return
@@ -85,7 +85,7 @@ func CreateNewShare(c *gin.Context) {
 		return
 	}
 	// 将shareID转化为shareKey
-	shareKey, err := common.HashEncode([]int{int(shareID)})
+	shareKey, err := common.HashEncode([]int{int(shareID)}, 4)
 	if err != nil {
 		// 转化失败
 		makeResult(c, 200, common.NewError(common.ERROR_COMMON_TOOLS_HASH_ENCODE_FAILED), nil)
@@ -110,7 +110,7 @@ func TransferFiles(c *gin.Context) {
 		return
 	}
 	// 从shareKey还原出shareID
-	shareID, err := common.HashDecode(data.ShareKey)
+	shareID, err := common.HashDecode(data.ShareKey, 4)
 	if err != nil {
 		makeResult(c, 200, common.NewError(common.ERROR_COMMON_TOOLS_HASH_DECODE_FAILED), nil)
 		return
@@ -136,7 +136,7 @@ func CancelShare(c *gin.Context) {
 		return
 	}
 	// 从shareKey还原出shareID
-	shareID, err := common.HashDecode(data.ShareKey)
+	shareID, err := common.HashDecode(data.ShareKey, 4)
 	if err != nil {
 		makeResult(c, 200, common.NewError(common.ERROR_COMMON_TOOLS_HASH_DECODE_FAILED), nil)
 		return
@@ -173,7 +173,7 @@ func GetMyShare(c *gin.Context) {
 			makeResult(c, 200, err, nil)
 			return
 		}
-		shareKey, err := common.HashEncode([]int{int(list[i].ShareID)})
+		shareKey, err := common.HashEncode([]int{int(list[i].ShareID)}, 4)
 		if err != nil {
 			makeResult(c, 200, common.NewError(common.ERROR_COMMON_TOOLS_HASH_ENCODE_FAILED), nil)
 			return
@@ -188,4 +188,39 @@ func GetMyShare(c *gin.Context) {
 		}
 	}
 	makeResult(c, 200, nil, GetMyShareResponse{shareList})
+}
+
+type GetShareFileRequest struct {
+	FileID        uint64 `json:"file_id"`
+	ShareKey      string `json:"share_key"`
+	SharePassword string `json:"share_password"`
+}
+
+func GetShareFile(c *gin.Context) {
+	var data GetShareFileRequest
+	if err := c.ShouldBindJSON(&data); err != nil {
+		makeResult(c, 200, err, nil)
+		return
+	}
+	shareID, err := common.HashDecode(data.ShareKey, 4)
+	if err != nil {
+		makeResult(c, 200, common.NewError(common.ERROR_COMMON_TOOLS_HASH_DECODE_FAILED), nil)
+		return
+	}
+	file, err := model.GetShareFile(shareID, data.SharePassword, data.FileID)
+	if err != nil {
+		makeResult(c, 200, err, nil)
+		return
+	}
+	fileKey, err := common.HashEncode([]int{int(file.FileID)}, 6)
+	if err != nil {
+		makeResult(c, 200, common.NewError(common.ERROR_COMMON_TOOLS_HASH_ENCODE_FAILED), nil)
+		return
+	}
+	downloadID, err := model.GetDownloadKey(file.Uid, file.FileID, fileKey)
+	if err != nil {
+		makeResult(c, 200, err, nil)
+		return
+	}
+	makeResult(c, 200, nil, GetDownloadKeyResponse{downloadID})
 }

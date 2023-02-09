@@ -26,7 +26,8 @@ func InitRouter(cf config.Config) *gin.Engine {
 	r.POST("login", controllers.UserLogin)
 	r.POST("register", controllers.UserRegister)
 	r.POST("share_info", controllers.GetShareDetail)
-
+	r.GET("download/:key", controllers.DownloadFile)
+	r.POST("get_share_file", controllers.GetShareFile)
 	// 接下来需要鉴权
 	// 用户路由
 	userRouter := r.Group("")
@@ -41,6 +42,8 @@ func InitRouter(cf config.Config) *gin.Engine {
 		fileRouter.POST("upload", controllers.Upload)
 		fileRouter.POST("merge", controllers.MergeFileChunks)
 		fileRouter.POST("move_files", controllers.MoveFiles)
+		fileRouter.POST("get_download_key", controllers.GetDownloadKey)
+		fileRouter.POST("remove_files", controllers.RemoveFiles)
 		shareRouter := r.Group("")
 		shareRouter.POST("new_share", controllers.CreateNewShare)
 		shareRouter.POST("transfer_files", controllers.TransferFiles)

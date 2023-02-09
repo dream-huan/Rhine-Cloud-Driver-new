@@ -51,7 +51,7 @@ func CheckSharePathValid(path string, uid, fileID uint64) ([]File, error) {
 
 func GetShareDetail(shareID uint64, password string, path string) (string, string, []File, error) {
 	var ShareDetail Share
-	err := DB.Table("shares").Where("share_id=?", shareID).Find(&ShareDetail).Error
+	err := DB.Table("shares").Where("share_id=? and valid = true", shareID).Find(&ShareDetail).Error
 	if err != nil || (ShareDetail.ExpireTime != "-" && time.Now().Format("2006-01-02 15:04:05") >= ShareDetail.ExpireTime) {
 		// 分享无效或已过期
 		return "", "", nil, common.NewError(common.ERROR_SHARE_NOT_EXIST)
@@ -61,6 +61,8 @@ func GetShareDetail(shareID uint64, password string, path string) (string, strin
 	DB.Table("users").Where("uid=?", ShareDetail.Uid).Find(&user)
 	hash := md5.New()
 	hashValue := hex.EncodeToString(hash.Sum([]byte(user.Email)))
+	// 访问次数增加一次
+	DB.Table("shares").Where("share_id=?", shareID).Update("view_times", gorm.Expr("view_times+1"))
 	if ShareDetail.Password != "" && password != ShareDetail.Password {
 		// 仅返回用户名称和头像信息，不返回文件系统
 		if password != "" {
@@ -145,6 +147,7 @@ func TransferFiles(uid, shareID uint64, moveFileList []uint64, targetDirID uint6
 			CreateTime:  time.Now().Format("2006-01-02 15:04:05"),
 			Valid:       true,
 			IsDir:       thisFile.IsDir,
+			MD5:         thisFile.MD5,
 			Path:        targetDir.Path + targetDir.FileName + "/",
 		}
 		tx.Table("files").Create(&newFile)
@@ -163,6 +166,7 @@ func TransferFiles(uid, shareID uint64, moveFileList []uint64, targetDirID uint6
 					CreateTime:  time.Now().Format("2006-01-02 15:04:05"),
 					Valid:       true,
 					IsDir:       subFiles[i].IsDir,
+					MD5:         subFiles[i].MD5,
 					Path:        strings.Replace(subFiles[i].Path, thisFile.Path, newFile.Path, 1),
 				}
 				tx.Table("files").Create(&newSubFile)
@@ -236,4 +240,30 @@ func CancelShare(uid uint64, shareID uint64) error {
 		return common.NewError(common.ERROR_DB_WRITE_FAILED)
 	}
 	return nil
+}
+
+func GetShareFile(shareID uint64, password string, fileID uint64) (file File, err error) {
+	var shareDetail Share
+	err = DB.Table("shares").Where("share_id = ? and valid = true and (now()<expire_time or expire_time='-')", shareID).Find(&shareDetail).Error
+	if err != nil || password != shareDetail.Password {
+		return File{}, common.NewError(common.ERROR_SHARE_PASSWORD_WRONG)
+	}
+	DB.Table("shares").Where("share_id = ?", shareID).Update("download_times", gorm.Expr("download_times + 1"))
+	var parentFile File
+	err = DB.Table("files").Where("file_id = ?", shareDetail.FileID).Find(&parentFile).Error
+	if err != nil || parentFile.FileID == 0 {
+		return File{}, common.NewError(common.ERROR_FILE_NOT_EXISTS)
+	}
+	if fileID == parentFile.FileID {
+		return parentFile, nil
+	}
+	err = DB.Table("files").Where("file_id = ?", fileID).Find(&file).Error
+	if err != nil || file.FileID == 0 {
+		return File{}, common.NewError(common.ERROR_FILE_NOT_EXISTS)
+	}
+	parentFilePath := parentFile.Path + parentFile.FileName + "/"
+	if file.Uid == parentFile.Uid && len(file.Path) >= len(parentFilePath) && parentFilePath == file.Path[:len(parentFilePath)] {
+		return file, nil
+	}
+	return File{}, common.NewError(common.ERROR_DOWNLOAD_FILE_INVALID)
 }

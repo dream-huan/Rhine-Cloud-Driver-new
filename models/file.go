@@ -106,7 +106,7 @@ func CheckPathValid(uid uint64, path, previousPath string) (bool, uint64) {
 		}
 	}
 	file := File{}
-	err := DB.Table("files").Where("uid=? and path=? and file_name=?", uid, previousPath, dirName).First(&file).Error
+	err := DB.Table("files").Where("uid = ? and path = ? and file_name = ? and valid = true ", uid, previousPath, dirName).First(&file).Error
 	if err != nil || file.FileID == 0 {
 		return false, 0
 	}
@@ -126,8 +126,8 @@ func BuildFileSystem(uid uint64, path string, limit, offset int) (count int64, d
 		return 0, 0, nil, common.NewError(common.ERROR_FILE_COUNT_EXCEED_LIMIT)
 	}
 	dirFileID = fileID
-	DB.Table("files").Where("parent_id=? and valid=1", fileID).Count(&count)
-	DB.Table("files").Where("parent_id=? and valid=1", fileID).Offset(offset).Limit(limit).Find(&files)
+	DB.Table("files").Where("parent_id = ? and valid = true", fileID).Count(&count)
+	DB.Table("files").Where("parent_id = ? and valid = true", fileID).Offset(offset).Limit(limit).Find(&files)
 	return
 }
 
@@ -251,7 +251,7 @@ func AddFile(uid uint64, md5 string, fileName string, fileSize, parentID uint64)
 	tx := DB.Begin()
 	// 不允许同一目录有相同文件名的文件
 	var count int64
-	tx.Table("files").Where("file_name=? and parent_id=? and is_dir=false", fileName, parentID).Count(&count)
+	tx.Table("files").Where("file_name=? and parent_id=? and is_dir=false and valid=true", fileName, parentID).Count(&count)
 	if count > 0 {
 		tx.Rollback()
 		return common.NewError(common.ERROR_FILE_SAME_NAME)
@@ -319,18 +319,36 @@ func Mkdir(uid uint64, fileName string, parentID uint64) error {
 
 func RemoveFiles(uid uint64, fileID []uint64) error {
 	// 验证该文件是否所属该用户
-	var targetFile File
-	err := DB.Table("files").Where("file_id=?", fileID).Find(&targetFile).Error
+	var targetFile []File
+	err := DB.Table("files").Where("file_id in ?", fileID).Find(&targetFile).Error
 	if err != nil {
 		// 文件不存在
+		return common.NewError(common.ERROR_FILE_NOT_EXISTS)
 	}
-	// 验证文件是否正被分享，如果是，删除该分享
-
-	// 恢复用户的所属空间
-
-	// 将valid置为0
-
-	// 给kafka传递信息，是否可以将该文件删除
+	tx := DB.Begin()
+	for _, v := range targetFile {
+		if v.FileID == 0 || v.Uid != uid || v.Valid == false {
+			tx.Rollback()
+			return common.NewError(common.ERROR_FILE_INVALID)
+		}
+		if v.IsDir == true {
+			var subFiles []File
+			tx.Table("files").Where("path like ? and valid = true", v.Path+v.FileName+"/%").Find(&subFiles)
+			for _, value := range subFiles {
+				tx.Table("files").Where("file_id = ?", value.FileID).Update("valid", 0)
+				tx.Table("users").Where("uid = ?", uid).Update("used_storage", gorm.Expr("used_storage - ?", value.FileStorage))
+				tx.Table("shares").Where("file_id = ? and valid = true and (now()<expire_time or expire_time='-')", value.FileID).Update("valid", 0)
+			}
+		}
+		// 验证文件是否正被分享，如果是，删除该分享
+		tx.Table("shares").Where("file_id = ? and valid = true and (now()<expire_time or expire_time='-')", v.FileID).Update("valid", 0)
+		// 恢复用户的所属空间
+		tx.Table("users").Where("uid = ?", uid).Update("used_storage", gorm.Expr("used_storage - ?", v.FileStorage))
+		// 将valid置为0
+		tx.Table("files").Where("file_id = ?", v.FileID).Update("valid", 0)
+		// 给kafka传递信息，是否可以将该文件删除
+	}
+	tx.Commit()
 	return nil
 }
 
@@ -392,14 +410,32 @@ func MoveFiles(uid uint64, moveFiles []uint64, targetDirID uint64) error {
 	return nil
 }
 
-func DownloadFile(uid, fileID uint64) (string, error) {
+func GetDownloadKey(uid, fileID uint64, fileKey string) (downloadID string, err error) {
 	// 验证是否是本人的文件
 	var file File
-	err := DB.Table("files").Where("file_id=?", fileID).Find(&file).Error
+	err = DB.Table("files").Where("file_id = ? and valid = true and is_dir = false", fileID).Find(&file).Error
 	if err != nil || file.Uid != uid {
-		return "", common.NewError(common.ERROR_FILE_INVALID)
+		return "", common.NewError(common.ERROR_DOWNLOAD_FILE_INVALID)
 	}
-	return file.MD5, nil
+	downloadID = common.RandStringRunes(6) + fileKey
+	redis.SetRedisKey("download_key_"+downloadID, strconv.FormatInt(int64(file.FileID), 10)+":"+file.FileName+":"+file.MD5, time.Hour/2)
+	return downloadID, nil
+}
+
+func DownloadFile(key string, fileID uint64) (fileName, fileMD5 string, err error) {
+	err = nil
+	fileInfo := redis.GetRedisKey("download_key_" + key)
+	if fileInfo == nil {
+		// 链接无效或已过期
+		return "", "", common.NewError(common.ERROR_DOWNLOAD_KEY_INVALID)
+	}
+	tempSlice := strings.Split(fileInfo.(string), ":")
+	if tempSlice[0] != strconv.FormatUint(fileID, 10) {
+		return "", "", common.NewError(common.ERROR_DOWNLOAD_KEY_INVALID)
+	}
+	fileName = tempSlice[1]
+	fileMD5 = tempSlice[2]
+	return
 }
 
 func GetFileInfo(fileID uint64, info string) (interface{}, error) {

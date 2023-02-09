@@ -26,10 +26,10 @@ func RandStringRunes(n int) string {
 	return string(b)
 }
 
-func HashEncode(v []int) (string, error) {
+func HashEncode(v []int, minLen int) (string, error) {
 	hd := hashids.NewData()
 	hd.Salt = "this is my salt"
-	hd.MinLength = 4
+	hd.MinLength = minLen
 	h, err := hashids.NewWithData(hd)
 	if err != nil {
 		log.Logger.Error("hashID new error:", zap.Error(err))
@@ -43,10 +43,10 @@ func HashEncode(v []int) (string, error) {
 	return e, nil
 }
 
-func HashDecode(hashValue string) (uint64, error) {
+func HashDecode(hashValue string, minLen int) (uint64, error) {
 	hd := hashids.NewData()
 	hd.Salt = "this is my salt"
-	hd.MinLength = 4
+	hd.MinLength = minLen
 	h, err := hashids.NewWithData(hd)
 	if err != nil {
 		log.Logger.Error("hashID new error:", zap.Error(err))

@@ -207,3 +207,68 @@ func MoveFiles(c *gin.Context) {
 	err := model.MoveFiles(uid, data.FileIDList, data.TargetDirID)
 	makeResult(c, 200, err, nil)
 }
+
+type GetDownloadKeyRequest struct {
+	FileID uint64 `json:"file_id"`
+}
+
+type GetDownloadKeyResponse struct {
+	DownloadKey string `json:"download_key"`
+}
+
+func GetDownloadKey(c *gin.Context) {
+	token, _ := c.Cookie("token")
+	_, uid := jwt.TokenGetUid(token)
+	var data GetDownloadKeyRequest
+	if err := c.ShouldBindJSON(&data); err != nil {
+		makeResult(c, 200, err, nil)
+		return
+	}
+	hashValue, err := common.HashEncode([]int{int(data.FileID)}, 6)
+	if err != nil {
+		makeResult(c, 200, common.NewError(common.ERROR_COMMON_TOOLS_HASH_ENCODE_FAILED), nil)
+		return
+	}
+	downloadKey, err := model.GetDownloadKey(uid, data.FileID, hashValue)
+	if err != nil {
+		makeResult(c, 200, err, nil)
+		return
+	}
+	makeResult(c, 200, nil, GetDownloadKeyResponse{downloadKey})
+}
+
+func DownloadFile(c *gin.Context) {
+	key := c.Param("key")
+	// 取fileID
+	fileID, err := common.HashDecode(key[6:], 6)
+	if err != nil {
+		makeResult(c, 200, common.NewError(common.ERROR_COMMON_TOOLS_HASH_DECODE_FAILED), nil)
+		return
+	}
+	fileName, fileMD5, err := model.DownloadFile(key, fileID)
+	if err != nil {
+		makeResult(c, 200, err, nil)
+	}
+	c.Header("Content-Disposition", "attachment; filename="+fileName)
+	c.File("./" + fileMD5)
+}
+
+type RemoveFilesRequest struct {
+	FileIDList []uint64 `json:"file_id_list"`
+}
+
+func RemoveFiles(c *gin.Context) {
+	token, _ := c.Cookie("token")
+	_, uid := jwt.TokenGetUid(token)
+	var data RemoveFilesRequest
+	if err := c.ShouldBindJSON(&data); err != nil {
+		makeResult(c, 200, err, nil)
+		return
+	}
+	err := model.RemoveFiles(uid, data.FileIDList)
+	if err != nil {
+		makeResult(c, 200, err, nil)
+		return
+	}
+	makeResult(c, 200, nil, nil)
+}

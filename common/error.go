@@ -73,6 +73,12 @@ const (
 	ERROR_SHARE_SAME_FILES     = 800004
 )
 
+// 下载相关
+const (
+	ERROR_DOWNLOAD_KEY_INVALID  = 900001
+	ERROR_DOWNLOAD_FILE_INVALID = 900002
+)
+
 var errMap = map[int]string{
 	ERROR_USER_NAME_LENGTH_NOT_MATCH:      "用户名称长度不符合规定",
 	ERROR_USER_PASSWORD_NOT_MATCH_RULES:   "用户密码不符合规定",
@@ -111,6 +117,8 @@ var errMap = map[int]string{
 	ERROR_FILE_INVALID:                    "文件不存在或你无法访问",
 	ERROR_SHARE_SAME_FILES:                "该文件你已经分享过了",
 	ERROR_FILE_TARGETDIR_SAME_FILES:       "目标文件夹有同名文件/文件夹",
+	ERROR_DOWNLOAD_KEY_INVALID:            "此下载链接无效或已过期",
+	ERROR_DOWNLOAD_FILE_INVALID:           "此文件你无权下载",
 }
 
 func NewError(errorNum int) error {

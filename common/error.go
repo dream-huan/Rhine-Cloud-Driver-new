@@ -46,6 +46,8 @@ const (
 	ERROR_AUTH_GET_TOKEN        = 600001
 	ERROR_AUTH_TOKEN_INVALID    = 600002
 	ERROR_AUTH_UPLOADID_INVALID = 600003
+	ERROR_AUTH_UID_NOT_EXIST    = 600004
+	ERROR_AUTH_NOT_PERMISSION   = 600005
 )
 
 // 文件相关错误
@@ -77,6 +79,11 @@ const (
 const (
 	ERROR_DOWNLOAD_KEY_INVALID  = 900001
 	ERROR_DOWNLOAD_FILE_INVALID = 900002
+)
+
+// 用户组相关
+const (
+	ERROR_GROUP_NOT_EXIST = 1000001
 )
 
 var errMap = map[int]string{
@@ -119,6 +126,9 @@ var errMap = map[int]string{
 	ERROR_FILE_TARGETDIR_SAME_FILES:       "目标文件夹有同名文件/文件夹",
 	ERROR_DOWNLOAD_KEY_INVALID:            "此下载链接无效或已过期",
 	ERROR_DOWNLOAD_FILE_INVALID:           "此文件你无权下载",
+	ERROR_AUTH_UID_NOT_EXIST:              "操作者或被操作者的UID不存在",
+	ERROR_AUTH_NOT_PERMISSION:             "你无权操作",
+	ERROR_GROUP_NOT_EXIST:                 "该用户组不存在",
 }
 
 func NewError(errorNum int) error {

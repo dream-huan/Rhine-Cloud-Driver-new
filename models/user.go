@@ -4,9 +4,11 @@ import (
 	"Rhine-Cloud-Driver/common"
 	"Rhine-Cloud-Driver/logic/jwt"
 	"Rhine-Cloud-Driver/logic/log"
+	"Rhine-Cloud-Driver/logic/redis"
 	"crypto/sha256"
 	"encoding/hex"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -23,7 +25,7 @@ type User struct {
 	CreateTime   string `json:"create_time"`                                  // 创建时间
 	UsedStorage  uint64 `json:"used_storage"`                                 // 已用容量
 	TotalStorage uint64 `json:"total_storage"`                                // 总容量
-	GroupId      int64  `json:"group_id"`                                     // 所属用户组
+	GroupId      uint64 `json:"group_id"`                                     // 所属用户组
 }
 
 func setHaltHash(password string) string {
@@ -136,7 +138,15 @@ func (user *User) AddUser() error {
 		return err
 	}
 	user.CreateTime = time.Now().Format("2006-01-02 15:04:05")
-	user.TotalStorage = 100000000
+	// 判断user用户组来赋予容量
+	var userStorage interface{}
+	if user.GroupId == 0 {
+		user.GroupId = 2
+		userStorage = redis.GetRedisKey("groups_storage_" + strconv.FormatUint(user.GroupId, 10))
+	} else {
+		userStorage = redis.GetRedisKey("groups_storage_" + strconv.FormatUint(user.GroupId, 10))
+	}
+	user.TotalStorage = userStorage.(uint64)
 	tx := DB.Session(&gorm.Session{})
 	err = tx.Table("users").Create(&user).Error
 	if err != nil {

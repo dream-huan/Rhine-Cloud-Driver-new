@@ -84,6 +84,7 @@ const (
 // 用户组相关
 const (
 	ERROR_GROUP_NOT_EXIST = 1000001
+	ERROR_GROUP_NOT_ADMIN = 1000002
 )
 
 var errMap = map[int]string{
@@ -129,6 +130,7 @@ var errMap = map[int]string{
 	ERROR_AUTH_UID_NOT_EXIST:              "操作者或被操作者的UID不存在",
 	ERROR_AUTH_NOT_PERMISSION:             "你无权操作",
 	ERROR_GROUP_NOT_EXIST:                 "该用户组不存在",
+	ERROR_GROUP_NOT_ADMIN:                 "你没有进入管理界面的权限",
 }
 
 func NewError(errorNum int) error {

@@ -182,14 +182,6 @@ func (user *User) GetUserDetail() {
 	DB.Table("users").Where("uid", user.Uid).Find(&user)
 }
 
-//// 禁止用户在考虑新建一个用户组，直接没有任何功能，即为封禁。
-//// todo 修改用户所属用户组
-//func (user *User) EditUserGroup(newGroupId int64) {
-//
-//}
-//
-//func (user *User) PermissionControl(function int) {
-//	// 获取所属用户组，拿到拥有权限
-//	// 将权限与所要权限比对，判定是否一致
-//	// 这个数据存redis会比较好
-//}
+func VerifyAdmin(uid uint64) bool {
+	return PermissionVerify(uid, PERMISSION_ADMIN_READ)
+}

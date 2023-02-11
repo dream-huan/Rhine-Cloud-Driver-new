@@ -78,3 +78,11 @@
 {"level":"ERROR","time":"2023-02-10T13:03:25.819+0800","linenum":"redis/redis.go:43","msg":"redis cluster get key error:","serviceName":"rhine-cloud-driver","error":"redis: nil"}
 {"level":"ERROR","time":"2023-02-10T13:07:30.978+0800","linenum":"redis/redis.go:43","msg":"redis cluster get key error:","serviceName":"rhine-cloud-driver","error":"redis: nil"}
 {"level":"ERROR","time":"2023-02-10T13:07:30.982+0800","linenum":"redis/redis.go:43","msg":"redis cluster get key error:","serviceName":"rhine-cloud-driver","error":"redis: nil"}
+{"level":"INFO","time":"2023-02-11T14:40:44.668+0800","linenum":"models/init.go:34","msg":"MySQL数据库链接成功","serviceName":"rhine-cloud-driver"}
+{"level":"INFO","time":"2023-02-11T14:40:44.714+0800","linenum":"redis/redis.go:28","msg":"Redis链接成功","serviceName":"rhine-cloud-driver"}
+{"level":"ERROR","time":"2023-02-11T14:40:46.512+0800","linenum":"redis/redis.go:43","msg":"redis cluster get key error:","serviceName":"rhine-cloud-driver","error":"redis: nil"}
+{"level":"ERROR","time":"2023-02-11T14:40:46.515+0800","linenum":"redis/redis.go:43","msg":"redis cluster get key error:","serviceName":"rhine-cloud-driver","error":"redis: nil"}
+{"level":"INFO","time":"2023-02-11T14:54:03.216+0800","linenum":"models/init.go:34","msg":"MySQL数据库链接成功","serviceName":"rhine-cloud-driver"}
+{"level":"INFO","time":"2023-02-11T14:54:03.272+0800","linenum":"redis/redis.go:28","msg":"Redis链接成功","serviceName":"rhine-cloud-driver"}
+{"level":"ERROR","time":"2023-02-11T15:12:13.201+0800","linenum":"jwt/jwt.go:42","msg":"JWT的token提取值错误:%#v","serviceName":"rhine-cloud-driver","error":"token contains an invalid number of segments"}
+{"level":"ERROR","time":"2023-02-11T15:12:13.205+0800","linenum":"redis/redis.go:43","msg":"redis cluster get key error:","serviceName":"rhine-cloud-driver","error":"redis: nil"}

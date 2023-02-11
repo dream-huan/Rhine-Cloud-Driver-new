@@ -84,11 +84,13 @@ func ChangeUsersGroup(changedUid, operatorUid, newGroupId uint64) error {
 		// 此用户不存在
 		return common.NewError(common.ERROR_AUTH_UID_NOT_EXIST)
 	}
-	changeUserPermission := redis.GetRedisKey("groups_permission_" + strconv.FormatUint(changedUid, 10))
-	operatorUserPermission := redis.GetRedisKey("groups_permission_" + strconv.FormatUint(operatorUid, 10))
+	changeUserPermissionStr := redis.GetRedisKey("groups_permission_" + strconv.FormatUint(changedUid, 10))
+	operatorUserPermissionStr := redis.GetRedisKey("groups_permission_" + strconv.FormatUint(operatorUid, 10))
+	changeUserPermission, _ := strconv.ParseInt(changeUserPermissionStr.(string), 10, 64)
+	operatorUserPermission, _ := strconv.ParseInt(operatorUserPermissionStr.(string), 10, 64)
 	// 鉴定操作者有网站修改权限
-	isok := (operatorUserPermission.(int) & (1 << PERMISSION_ADMIN_WRITE)) | (operatorUserPermission.(int) & (1 << PERMISSION_MAXIMUM))
-	if isok <= 0 || changeUserPermission.(int) >= operatorUserPermission.(int) {
+	isok := (operatorUserPermission & (1 << PERMISSION_ADMIN_WRITE)) | (operatorUserPermission & (1 << PERMISSION_MAXIMUM))
+	if isok <= 0 || changeUserPermission >= operatorUserPermission {
 		return common.NewError(common.ERROR_AUTH_NOT_PERMISSION)
 	}
 	// 数据库执行更改
@@ -104,11 +106,13 @@ func ChangeGroupInfo(uid uint64, groupID uint64, changedInfo Group) error {
 		// 此用户不存在
 		return common.NewError(common.ERROR_AUTH_UID_NOT_EXIST)
 	}
-	userPermission := redis.GetRedisKey("groups_permission_" + strconv.FormatUint(user.GroupId, 10))
-	groupPermission := redis.GetRedisKey("groups_permission_" + strconv.FormatUint(groupID, 10))
+	userPermissionStr := redis.GetRedisKey("groups_permission_" + strconv.FormatUint(user.GroupId, 10))
+	groupPermissionStr := redis.GetRedisKey("groups_permission_" + strconv.FormatUint(groupID, 10))
+	userPermission, _ := strconv.ParseInt(userPermissionStr.(string), 10, 64)
+	groupPermission, _ := strconv.ParseInt(groupPermissionStr.(string), 10, 64)
 	// 鉴定操作者有网站修改权限
-	isok := (userPermission.(int) & (1 << PERMISSION_ADMIN_WRITE)) | (userPermission.(int) & (1 << PERMISSION_MAXIMUM))
-	if isok <= 0 || groupPermission.(int) >= userPermission.(int) {
+	isok := (userPermission & (1 << PERMISSION_ADMIN_WRITE)) | (userPermission & (1 << PERMISSION_MAXIMUM))
+	if isok <= 0 || groupPermission >= userPermission {
 		return common.NewError(common.ERROR_AUTH_NOT_PERMISSION)
 	}
 	// 数据库更改
@@ -149,11 +153,13 @@ func DelGroup(uid, groupID uint64) error {
 		// 此用户不存在
 		return common.NewError(common.ERROR_AUTH_UID_NOT_EXIST)
 	}
-	userPermission := redis.GetRedisKey("groups_permission_" + strconv.FormatUint(user.GroupId, 10))
-	groupPermission := redis.GetRedisKey("groups_permission_" + strconv.FormatUint(groupID, 10))
+	userPermissionStr := redis.GetRedisKey("groups_permission_" + strconv.FormatUint(user.GroupId, 10))
+	groupPermissionStr := redis.GetRedisKey("groups_permission_" + strconv.FormatUint(groupID, 10))
+	userPermission, _ := strconv.ParseInt(userPermissionStr.(string), 10, 64)
+	groupPermission, _ := strconv.ParseInt(groupPermissionStr.(string), 10, 64)
 	// 鉴定操作者有网站修改权限
-	isok := (userPermission.(int) & (1 << PERMISSION_ADMIN_WRITE)) | (userPermission.(int) & (1 << PERMISSION_MAXIMUM))
-	if isok <= 0 || groupPermission.(int) >= userPermission.(int) {
+	isok := (userPermission & (1 << PERMISSION_ADMIN_WRITE)) | (userPermission & (1 << PERMISSION_MAXIMUM))
+	if isok <= 0 || groupPermission >= userPermission {
 		return common.NewError(common.ERROR_AUTH_NOT_PERMISSION)
 	}
 	// 将该用户组的全部用户移动为其他用户组
@@ -175,9 +181,10 @@ func PermissionVerify(uid uint64, permissionCode int) bool {
 	// 拿到用户的用户组ID
 	DB.Table("users").Where("uid = ?", uid).Find(&user)
 	// 取得用户的权限
-	userPermission := redis.GetRedisKey("groups_permission_" + strconv.FormatUint(user.GroupId, 10))
-	if userPermission == nil {
+	userPermissionStr := redis.GetRedisKey("groups_permission_" + strconv.FormatUint(user.GroupId, 10))
+	if userPermissionStr == nil {
 		return false
 	}
-	return userPermission.(int)&(1<<permissionCode) >= (1<<permissionCode) || userPermission.(int)&(1<<PERMISSION_MAXIMUM) >= (1<<PERMISSION_MAXIMUM)
+	userPermission, _ := strconv.ParseInt(userPermissionStr.(string), 10, 64)
+	return userPermission&(1<<permissionCode) >= (1<<permissionCode) || userPermission&(1<<PERMISSION_MAXIMUM) >= (1<<PERMISSION_MAXIMUM)
 }

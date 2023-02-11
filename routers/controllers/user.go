@@ -124,3 +124,16 @@ func GetUserDetail(c *gin.Context) {
 	}
 	makeResult(c, 200, nil, responseData)
 }
+
+//
+//func VerifyAdmin(c *gin.Context) {
+//	token, _ := c.Cookie("token")
+//	_, uid := jwt.TokenGetUid(token)
+//	isok := model.VerifyAdmin(uid)
+//	if !isok {
+//		makeResult(c, 200, common.NewError(common.ERROR_GROUP_NOT_ADMIN), nil)
+//		return
+//	}
+//	// 生成adminToken用于访问
+//	jwt.GenerateToken()
+//}

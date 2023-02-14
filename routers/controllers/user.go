@@ -2,7 +2,9 @@ package controllers
 
 import (
 	"Rhine-Cloud-Driver/logic/jwt"
+	"Rhine-Cloud-Driver/logic/redis"
 	model "Rhine-Cloud-Driver/models"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"strconv"
 	"strings"
@@ -89,18 +91,19 @@ func UserRegister(c *gin.Context) {
 }
 
 type GroupDetail struct {
-	GroupId   int64  `json:"group_id"`
+	GroupId   uint64 `json:"group_id"`
 	GroupName string `json:"group_name"`
 }
 
 type UserDetail struct {
-	Name         string      `json:"name"`
-	Uid          string      `json:"uid"` // 因为前端不支持uint64，需要后端转为string来传递一下
-	Email        string      `json:"email"`
-	CreateTime   string      `json:"create_time"`
-	UsedStorage  uint64      `json:"used_storage"`
-	TotalStorage uint64      `json:"total_storage"`
-	Group        GroupDetail `json:"group"`
+	Name         string `json:"name"`
+	Uid          string `json:"uid"` // 因为前端不支持uint64，需要后端转为string来传递一下
+	Email        string `json:"email"`
+	CreateTime   string `json:"create_time"`
+	UsedStorage  uint64 `json:"used_storage"`
+	TotalStorage uint64 `json:"total_storage"`
+	//AvatarId     string      `json:"avatar_id"`
+	Group GroupDetail `json:"group"`
 }
 
 // GetUserDetail 获取用户个人信息
@@ -114,6 +117,9 @@ func GetUserDetail(c *gin.Context) {
 	user.GetUserDetail()
 	// 回传的数据有：名称、Uid、创建时间、已用容量、总容量以及用户组的信息
 	// 用户组的信息暂时不管
+	groupName := redis.GetRedisKey("groups_name_" + strconv.FormatUint(user.GroupId, 10))
+	//hash := md5.New()
+	//hashValue := hex.EncodeToString(hash.Sum([]byte(user.Email)))
 	responseData := UserDetail{
 		Name:         user.Name,
 		Uid:          strconv.FormatUint(user.Uid, 10),
@@ -121,8 +127,49 @@ func GetUserDetail(c *gin.Context) {
 		CreateTime:   user.CreateTime,
 		UsedStorage:  user.UsedStorage,
 		TotalStorage: user.TotalStorage,
+		Group: GroupDetail{
+			GroupId:   user.GroupId,
+			GroupName: groupName.(string),
+		},
 	}
 	makeResult(c, 200, nil, responseData)
+}
+
+type ChangeUserInfoRequest struct {
+	NewName     string `json:"new_name"`
+	OldPassword string `json:"old_password"`
+	NewPassword string `json:"new_password"`
+}
+
+func ChangeUserInfo(c *gin.Context) {
+	token, _ := c.Cookie("token")
+	_, uid := jwt.TokenGetUid(token)
+	var data ChangeUserInfoRequest
+	if err := c.ShouldBindJSON(&data); err != nil {
+		makeResult(c, 200, err, nil)
+		return
+	}
+	fmt.Println(data)
+	err := model.ChangeUserInfo(uid, data.NewName, data.OldPassword, data.NewPassword)
+	if err != nil {
+		makeResult(c, 200, err, nil)
+		return
+	}
+	makeResult(c, 200, nil, nil)
+}
+
+func UploadAvatar(c *gin.Context) {
+	token, _ := c.Cookie("token")
+	_, uid := jwt.TokenGetUid(token)
+	file, _ := c.FormFile("avatar")
+	c.SaveUploadedFile(file, "./"+strconv.FormatUint(uid, 10))
+	makeResult(c, 200, nil, nil)
+}
+
+func GetUserAvatar(c *gin.Context) {
+	id := c.Query("id")
+	c.Header("Content-Disposition", "attachment; filename=avatar.png")
+	c.File("./" + id)
 }
 
 //

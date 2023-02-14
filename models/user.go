@@ -105,7 +105,7 @@ func (user *User) VerifyAccess(token string, uid uint64, email string, password 
 	}
 	if user.verifyPassword(password) {
 		// 生成新的token下发
-		token, err := jwt.GenerateToken(user.Uid)
+		token, err := jwt.GenerateToken(user.Uid, user.Email)
 		if err != nil {
 			log.Logger.Error("生成token错误", zap.Error(err))
 			return "", common.NewError(common.ERROR_JWT_GENERATE_TOKEN_FAILED)
@@ -184,4 +184,24 @@ func (user *User) GetUserDetail() {
 
 func VerifyAdmin(uid uint64) bool {
 	return PermissionVerify(uid, PERMISSION_ADMIN_READ)
+}
+
+func ChangeUserInfo(uid uint64, newName string, oldPassword string, newPassword string) error {
+	if newName != "" {
+		if !checkNewName(newName) {
+			return common.NewError(common.ERROR_USER_NAME_LENGTH_NOT_MATCH)
+		}
+		DB.Table("users").Where("uid = ?", uid).Update("name", newName)
+		return nil
+	}
+	if !checkNewPassword(newPassword) {
+		return common.NewError(common.ERROR_USER_PASSWORD_NOT_MATCH_RULES)
+	}
+	var user User
+	DB.Table("users").Where("uid = ?", uid).Find(&user)
+	if !user.verifyPassword(oldPassword) {
+		return common.NewError(common.ERROR_USER_UID_PASSWORD_WRONG)
+	}
+	DB.Table("users").Where("uid = ?", uid).Update("password", setHaltHash(newPassword))
+	return nil
 }

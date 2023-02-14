@@ -29,12 +29,15 @@ func InitRouter(cf config.Config) *gin.Engine {
 	r.POST("share_info", controllers.GetShareDetail)
 	r.GET("download/:key", controllers.DownloadFile)
 	r.POST("get_share_file", controllers.GetShareFile)
+	r.GET("get_avatar", controllers.GetUserAvatar)
 	// 接下来需要鉴权
 	// 用户路由
 	userRouter := r.Group("")
 	userRouter.Use(middleware.TokenVerify())
 	{
 		userRouter.GET("get_info", controllers.GetUserDetail)
+		userRouter.POST("change_setting", controllers.ChangeUserInfo)
+		userRouter.POST("upload_avatar", controllers.UploadAvatar)
 		// 文件路由
 		fileRouter := r.Group("")
 		fileRouter.Use(middleware.PermissionVerify(model.PERMISSION_FILE))

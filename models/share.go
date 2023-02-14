@@ -2,8 +2,6 @@ package model
 
 import (
 	"Rhine-Cloud-Driver/common"
-	"crypto/md5"
-	"encoding/hex"
 	"gorm.io/gorm"
 	"strings"
 	"time"
@@ -49,33 +47,31 @@ func CheckSharePathValid(path string, uid, fileID uint64) ([]File, error) {
 	}
 }
 
-func GetShareDetail(shareID uint64, password string, path string) (string, string, []File, error) {
+func GetShareDetail(shareID uint64, password string, path string) (string, uint64, []File, error) {
 	var ShareDetail Share
 	err := DB.Table("shares").Where("share_id=? and valid = true", shareID).Find(&ShareDetail).Error
 	if err != nil || (ShareDetail.ExpireTime != "-" && time.Now().Format("2006-01-02 15:04:05") >= ShareDetail.ExpireTime) {
 		// 分享无效或已过期
-		return "", "", nil, common.NewError(common.ERROR_SHARE_NOT_EXIST)
+		return "", 0, nil, common.NewError(common.ERROR_SHARE_NOT_EXIST)
 	}
 	// 密码是否正确或无密码
 	user := User{}
 	DB.Table("users").Where("uid=?", ShareDetail.Uid).Find(&user)
-	hash := md5.New()
-	hashValue := hex.EncodeToString(hash.Sum([]byte(user.Email)))
 	// 访问次数增加一次
 	DB.Table("shares").Where("share_id=?", shareID).Update("view_times", gorm.Expr("view_times+1"))
 	if ShareDetail.Password != "" && password != ShareDetail.Password {
 		// 仅返回用户名称和头像信息，不返回文件系统
 		if password != "" {
-			return "", "", nil, common.NewError(common.ERROR_SHARE_PASSWORD_WRONG)
+			return "", 0, nil, common.NewError(common.ERROR_SHARE_PASSWORD_WRONG)
 		}
-		return user.Name, hashValue, nil, nil
+		return user.Name, user.Uid, nil, nil
 	}
 	// 返回全部信息
 	files, err := CheckSharePathValid(path, ShareDetail.Uid, ShareDetail.FileID)
 	if err != nil {
-		return "", "", nil, err
+		return "", 0, nil, err
 	}
-	return user.Name, hashValue, files, nil
+	return user.Name, user.Uid, files, nil
 }
 
 func GetMyShare(uid uint64) (shareList []Share) {

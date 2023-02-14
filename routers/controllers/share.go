@@ -5,6 +5,7 @@ import (
 	"Rhine-Cloud-Driver/logic/jwt"
 	model "Rhine-Cloud-Driver/models"
 	"github.com/gin-gonic/gin"
+	"strconv"
 	"time"
 )
 
@@ -32,12 +33,14 @@ func GetShareDetail(c *gin.Context) {
 		makeResult(c, 200, common.NewError(common.ERROR_COMMON_TOOLS_HASH_DECODE_FAILED), nil)
 		return
 	}
-	name, email, originFiles, err := model.GetShareDetail(shareID, data.SharePassword, data.SharePath)
+	name, uid, originFiles, err := model.GetShareDetail(shareID, data.SharePassword, data.SharePath)
 	// 对邮箱进行MD5加密后返回给用户
 	if err != nil {
 		makeResult(c, 200, err, nil)
 		return
 	}
+	//hash := md5.New()
+	//hashValue := hex.EncodeToString(hash.Sum([]byte(email)))
 	files := make([]FileSystem, len(originFiles))
 	for i := range originFiles {
 		files[i] = FileSystem{
@@ -50,7 +53,7 @@ func GetShareDetail(c *gin.Context) {
 	}
 	makeResult(c, 200, nil, GetShareDetailResponse{
 		Name:      name,
-		AvatarURL: email,
+		AvatarURL: strconv.FormatUint(uid, 10),
 		Files:     files,
 	})
 }

@@ -18,11 +18,13 @@ func TokenVerify() gin.HandlerFunc {
 			}
 			c.JSON(401, common.ResponseData{Code: 1, Msg: err.Error(), Data: nil})
 			c.Abort()
+			return
 		}
 		_, uid := jwt.TokenGetUid(token)
 		if !model.PermissionVerify(uid, model.PERMISSION_ACCESS) {
 			c.JSON(401, common.ResponseData{Code: 1, Msg: "您被禁止访问", Data: nil})
 			c.Abort()
+			return
 		}
 		c.Next()
 	}

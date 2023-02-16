@@ -163,6 +163,7 @@ type ShareDetail struct {
 	DownloadTimes uint64 `json:"download_times"`
 	ViewTimes     uint64 `json:"view_times"`
 	Password      string `json:"password"`
+	IsDir         bool   `json:"is_dir"`
 }
 
 func GetMyShare(c *gin.Context) {
@@ -171,7 +172,7 @@ func GetMyShare(c *gin.Context) {
 	list := model.GetMyShare(uid)
 	shareList := make([]ShareDetail, len(list))
 	for i := range list {
-		fileName, err := model.GetFileInfo(list[i].FileID, "file_name")
+		file, err := model.GetFileInfo(list[i].FileID, "all")
 		if err != nil {
 			makeResult(c, 200, err, nil)
 			return
@@ -182,12 +183,13 @@ func GetMyShare(c *gin.Context) {
 			return
 		}
 		shareList[i] = ShareDetail{
-			FileName:      fileName.(string),
+			FileName:      file.(model.File).FileName,
 			ExpireTime:    list[i].ExpireTime,
 			ShareKey:      shareKey,
 			DownloadTimes: list[i].DownloadTimes,
 			ViewTimes:     list[i].ViewTimes,
 			Password:      list[i].Password,
+			IsDir:         file.(model.File).IsDir,
 		}
 	}
 	makeResult(c, 200, nil, GetMyShareResponse{shareList})

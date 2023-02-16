@@ -87,6 +87,11 @@ const (
 	ERROR_GROUP_NOT_ADMIN = 1000002
 )
 
+// 传值相关
+const (
+	ERROR_PARA_INVALID = 1100001
+)
+
 var errMap = map[int]string{
 	ERROR_USER_NAME_LENGTH_NOT_MATCH:      "用户名称长度不符合规定",
 	ERROR_USER_PASSWORD_NOT_MATCH_RULES:   "用户密码不符合规定",
@@ -131,6 +136,7 @@ var errMap = map[int]string{
 	ERROR_AUTH_NOT_PERMISSION:             "你无权操作",
 	ERROR_GROUP_NOT_EXIST:                 "该用户组不存在",
 	ERROR_GROUP_NOT_ADMIN:                 "你没有进入管理界面的权限",
+	ERROR_PARA_INVALID:                    "参数非法",
 }
 
 func NewError(errorNum int) error {

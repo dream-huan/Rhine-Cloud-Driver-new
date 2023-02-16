@@ -64,6 +64,9 @@ func InitRouter(cf config.Config) *gin.Engine {
 		adminRouter := r.Group("admin")
 		adminRouter.Use(middleware.PermissionVerify(model.PERMISSION_ADMIN_READ))
 		adminRouter.GET("web-setting", controllers.AdminDemo)
+		adminRouter.POST("get_all_users", controllers.GetAllUser)
+		adminRouter.POST("get_user_info", controllers.GetUserInfo)
+		adminRouter.POST("get_all_shares", controllers.GetAllShare)
 	}
 
 	router.Run(cf.Server.Host)

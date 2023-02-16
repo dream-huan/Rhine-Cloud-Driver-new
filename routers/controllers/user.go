@@ -2,9 +2,7 @@ package controllers
 
 import (
 	"Rhine-Cloud-Driver/logic/jwt"
-	"Rhine-Cloud-Driver/logic/redis"
 	model "Rhine-Cloud-Driver/models"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"strconv"
 	"strings"
@@ -18,7 +16,7 @@ type RegisterRequest struct {
 }
 
 type RegisterResponse struct {
-	Uid uint64 `json:"uid"`
+	Uid string `json:"uid"`
 }
 
 type LoginRequest struct {
@@ -86,7 +84,7 @@ func UserRegister(c *gin.Context) {
 		makeResult(c, 200, err, nil)
 		return
 	}
-	responseData := RegisterResponse{newUser.Uid}
+	responseData := RegisterResponse{strconv.FormatUint(newUser.Uid, 10)}
 	makeResult(c, 200, nil, responseData)
 }
 
@@ -117,7 +115,6 @@ func GetUserDetail(c *gin.Context) {
 	user.GetUserDetail()
 	// 回传的数据有：名称、Uid、创建时间、已用容量、总容量以及用户组的信息
 	// 用户组的信息暂时不管
-	groupName := redis.GetRedisKey("groups_name_" + strconv.FormatUint(user.GroupId, 10))
 	//hash := md5.New()
 	//hashValue := hex.EncodeToString(hash.Sum([]byte(user.Email)))
 	responseData := UserDetail{
@@ -129,7 +126,7 @@ func GetUserDetail(c *gin.Context) {
 		TotalStorage: user.TotalStorage,
 		Group: GroupDetail{
 			GroupId:   user.GroupId,
-			GroupName: groupName.(string),
+			GroupName: user.GroupName,
 		},
 	}
 	makeResult(c, 200, nil, responseData)
@@ -149,7 +146,6 @@ func ChangeUserInfo(c *gin.Context) {
 		makeResult(c, 200, err, nil)
 		return
 	}
-	fmt.Println(data)
 	err := model.ChangeUserInfo(uid, data.NewName, data.OldPassword, data.NewPassword)
 	if err != nil {
 		makeResult(c, 200, err, nil)

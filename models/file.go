@@ -440,11 +440,13 @@ func DownloadFile(key string, fileID uint64) (fileName, fileMD5 string, err erro
 
 func GetFileInfo(fileID uint64, info string) (interface{}, error) {
 	file := File{}
-	err := DB.Table("files").Select(info).Where("file_id=?", fileID).Find(&file).Error
+	err := DB.Table("files").Where("file_id=?", fileID).Find(&file).Error
 	if err != nil {
 		return nil, common.NewError(common.ERROR_FILE_NOT_EXISTS)
 	}
 	switch info {
+	case "all":
+		return file, nil
 	case "create_time":
 		return file.CreateTime, nil
 	case "file_name":

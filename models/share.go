@@ -223,15 +223,25 @@ func CreateShare(uid, fileID uint64, ExpireTime string, password string) (uint64
 	return newShare.ShareID, nil
 }
 
-func CancelShare(uid uint64, shareID uint64) error {
-	// 检查该shareID是否属于该uid
+func CancelShareCheck(uid uint64, shareID uint64) error {
+	// 如果uid拥有网站管理写权限或最高权限则允许更改
+	if PermissionVerify(uid, PERMISSION_ADMIN_WRITE) {
+		return nil
+	}
 	var shareDetail Share
 	err := DB.Table("shares").Where("share_id=?", shareID).Find(&shareDetail).Error
 	if err != nil || shareDetail.Uid != uid {
 		// 无权访问这些文件
 		return common.NewError(common.ERROR_SHARE_FILE_INVALID)
 	}
-	err = DB.Table("shares").Where("share_id=?", shareID).Update("valid", 0).Error
+	return nil
+}
+
+func CancelShare(uid uint64, shareID uint64) error {
+	if err := CancelShareCheck(uid, shareID); err != nil {
+		return err
+	}
+	err := DB.Table("shares").Where("share_id=?", shareID).Update("valid", 0).Error
 	if err != nil {
 		return common.NewError(common.ERROR_DB_WRITE_FAILED)
 	}

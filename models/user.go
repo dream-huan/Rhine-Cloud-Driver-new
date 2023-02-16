@@ -26,6 +26,7 @@ type User struct {
 	UsedStorage  uint64 `json:"used_storage"`                                 // 已用容量
 	TotalStorage uint64 `json:"total_storage"`                                // 总容量
 	GroupId      uint64 `json:"group_id"`                                     // 所属用户组
+	GroupName    string `json:"group_name" gorm:"-:all"`
 }
 
 func setHaltHash(password string) string {
@@ -146,7 +147,7 @@ func (user *User) AddUser() error {
 	} else {
 		userStorage = redis.GetRedisKey("groups_storage_" + strconv.FormatUint(user.GroupId, 10))
 	}
-	user.TotalStorage = userStorage.(uint64)
+	user.TotalStorage, _ = strconv.ParseUint(userStorage.(string), 10, 64)
 	tx := DB.Session(&gorm.Session{})
 	err = tx.Table("users").Create(&user).Error
 	if err != nil {
@@ -180,6 +181,11 @@ func (user *User) GetUserDetail() {
 	// 回传uid来进行校验
 	// 获取信息可以不需要有那么强的实时性，可以不取事务
 	DB.Table("users").Where("uid", user.Uid).Find(&user)
+	if user.Email == "" {
+		return
+	}
+	groupName := redis.GetRedisKey("groups_name_" + strconv.FormatUint(user.GroupId, 10))
+	user.GroupName = groupName.(string)
 }
 
 func VerifyAdmin(uid uint64) bool {

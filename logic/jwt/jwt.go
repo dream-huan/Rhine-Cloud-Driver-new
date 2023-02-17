@@ -9,7 +9,8 @@ import (
 
 // JWT个性化claims结构体
 type CustomClaims struct {
-	Uid uint64
+	Uid   uint64
+	Email string
 	jwt.StandardClaims
 }
 
@@ -19,10 +20,11 @@ func Init(key string) {
 	jwtkey = key
 }
 
-func GenerateToken(uid uint64) (string, error) {
+func GenerateToken(uid uint64, email string) (string, error) {
 	expireTime := time.Now().Add(time.Second * 60 * 60 * 24 * 7) //登录有效期为7天
 	claims := CustomClaims{
-		Uid: uid,
+		Uid:   uid,
+		Email: email,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expireTime.Unix(),
 		},
@@ -68,15 +70,15 @@ func TokenGetUid(token string) (isok bool, uid uint64) {
 	return true, claims.Uid
 }
 
-func TokenGetIp(token string) (uid string) {
+func TokenGetEmail(token string) (email string) {
 	tokenClaims, err := jwt.ParseWithClaims(token, &CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return []byte(jwtkey), nil
 	})
 	if err != nil {
-		return "0.0.0.0"
+		return ""
 	}
 	claims, _ := tokenClaims.Claims.(*CustomClaims)
-	return claims.StandardClaims.Audience
+	return claims.Email
 }
 
 func ParseToken(token string) (*CustomClaims, error) {

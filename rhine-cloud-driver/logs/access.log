@@ -1,0 +1,40 @@
+{"level":"INFO","time":"2023-02-15T16:09:07.419+0800","linenum":"models/init.go:34","msg":"MySQL数据库链接成功","serviceName":"rhine-cloud-driver"}
+{"level":"INFO","time":"2023-02-15T16:09:07.490+0800","linenum":"redis/redis.go:28","msg":"Redis链接成功","serviceName":"rhine-cloud-driver"}
+{"level":"INFO","time":"2023-02-15T16:25:08.945+0800","linenum":"models/init.go:34","msg":"MySQL数据库链接成功","serviceName":"rhine-cloud-driver"}
+{"level":"INFO","time":"2023-02-15T16:25:08.995+0800","linenum":"redis/redis.go:28","msg":"Redis链接成功","serviceName":"rhine-cloud-driver"}
+{"level":"INFO","time":"2023-02-15T16:29:11.853+0800","linenum":"models/init.go:34","msg":"MySQL数据库链接成功","serviceName":"rhine-cloud-driver"}
+{"level":"INFO","time":"2023-02-15T16:29:11.899+0800","linenum":"redis/redis.go:28","msg":"Redis链接成功","serviceName":"rhine-cloud-driver"}
+{"level":"ERROR","time":"2023-02-15T16:33:21.334+0800","linenum":"redis/redis.go:43","msg":"redis cluster get key error:","serviceName":"rhine-cloud-driver","error":"redis: nil"}
+{"level":"ERROR","time":"2023-02-15T16:34:02.985+0800","linenum":"redis/redis.go:43","msg":"redis cluster get key error:","serviceName":"rhine-cloud-driver","error":"redis: nil"}
+{"level":"ERROR","time":"2023-02-15T16:34:02.990+0800","linenum":"redis/redis.go:43","msg":"redis cluster get key error:","serviceName":"rhine-cloud-driver","error":"redis: nil"}
+{"level":"INFO","time":"2023-02-16T17:03:37.140+0800","linenum":"models/init.go:34","msg":"MySQL数据库链接成功","serviceName":"rhine-cloud-driver"}
+{"level":"INFO","time":"2023-02-16T17:03:37.226+0800","linenum":"redis/redis.go:28","msg":"Redis链接成功","serviceName":"rhine-cloud-driver"}
+{"level":"INFO","time":"2023-02-16T21:26:14.293+0800","linenum":"models/init.go:34","msg":"MySQL数据库链接成功","serviceName":"rhine-cloud-driver"}
+{"level":"INFO","time":"2023-02-16T21:26:14.374+0800","linenum":"redis/redis.go:28","msg":"Redis链接成功","serviceName":"rhine-cloud-driver"}
+{"level":"INFO","time":"2023-02-16T21:30:37.560+0800","linenum":"models/init.go:34","msg":"MySQL数据库链接成功","serviceName":"rhine-cloud-driver"}
+{"level":"INFO","time":"2023-02-16T21:30:37.619+0800","linenum":"redis/redis.go:28","msg":"Redis链接成功","serviceName":"rhine-cloud-driver"}
+{"level":"ERROR","time":"2023-02-16T21:45:14.521+0800","linenum":"jwt/jwt.go:44","msg":"JWT的token提取值错误:%#v","serviceName":"rhine-cloud-driver","error":"token contains an invalid number of segments"}
+{"level":"ERROR","time":"2023-02-16T21:45:14.526+0800","linenum":"redis/redis.go:43","msg":"redis cluster get key error:","serviceName":"rhine-cloud-driver","error":"redis: nil"}
+{"level":"INFO","time":"2023-02-16T22:14:30.795+0800","linenum":"models/init.go:34","msg":"MySQL数据库链接成功","serviceName":"rhine-cloud-driver"}
+{"level":"INFO","time":"2023-02-16T22:14:30.873+0800","linenum":"redis/redis.go:28","msg":"Redis链接成功","serviceName":"rhine-cloud-driver"}
+{"level":"INFO","time":"2023-02-16T22:17:58.404+0800","linenum":"models/init.go:34","msg":"MySQL数据库链接成功","serviceName":"rhine-cloud-driver"}
+{"level":"INFO","time":"2023-02-16T22:17:58.481+0800","linenum":"redis/redis.go:28","msg":"Redis链接成功","serviceName":"rhine-cloud-driver"}
+{"level":"INFO","time":"2023-02-16T22:24:52.527+0800","linenum":"models/init.go:34","msg":"MySQL数据库链接成功","serviceName":"rhine-cloud-driver"}
+{"level":"INFO","time":"2023-02-16T22:24:52.597+0800","linenum":"redis/redis.go:28","msg":"Redis链接成功","serviceName":"rhine-cloud-driver"}
+{"level":"ERROR","time":"2023-02-16T22:24:55.929+0800","linenum":"redis/redis.go:43","msg":"redis cluster get key error:","serviceName":"rhine-cloud-driver","error":"redis: nil"}
+{"level":"INFO","time":"2023-02-16T22:26:45.895+0800","linenum":"models/init.go:34","msg":"MySQL数据库链接成功","serviceName":"rhine-cloud-driver"}
+{"level":"INFO","time":"2023-02-16T22:26:45.971+0800","linenum":"redis/redis.go:28","msg":"Redis链接成功","serviceName":"rhine-cloud-driver"}
+{"level":"ERROR","time":"2023-02-16T22:26:48.266+0800","linenum":"redis/redis.go:43","msg":"redis cluster get key error:","serviceName":"rhine-cloud-driver","error":"redis: nil"}
+{"level":"INFO","time":"2023-02-16T22:28:15.363+0800","linenum":"models/init.go:34","msg":"MySQL数据库链接成功","serviceName":"rhine-cloud-driver"}
+{"level":"INFO","time":"2023-02-16T22:28:15.437+0800","linenum":"redis/redis.go:28","msg":"Redis链接成功","serviceName":"rhine-cloud-driver"}
+{"level":"INFO","time":"2023-02-16T22:49:23.527+0800","linenum":"models/init.go:34","msg":"MySQL数据库链接成功","serviceName":"rhine-cloud-driver"}
+{"level":"INFO","time":"2023-02-16T22:49:23.607+0800","linenum":"redis/redis.go:28","msg":"Redis链接成功","serviceName":"rhine-cloud-driver"}
+{"level":"INFO","time":"2023-02-16T22:50:22.898+0800","linenum":"models/init.go:34","msg":"MySQL数据库链接成功","serviceName":"rhine-cloud-driver"}
+{"level":"INFO","time":"2023-02-16T22:50:22.969+0800","linenum":"redis/redis.go:28","msg":"Redis链接成功","serviceName":"rhine-cloud-driver"}
+{"level":"INFO","time":"2023-02-16T23:07:20.060+0800","linenum":"models/init.go:34","msg":"MySQL数据库链接成功","serviceName":"rhine-cloud-driver"}
+{"level":"INFO","time":"2023-02-16T23:07:20.139+0800","linenum":"redis/redis.go:28","msg":"Redis链接成功","serviceName":"rhine-cloud-driver"}
+{"level":"INFO","time":"2023-02-16T23:11:36.538+0800","linenum":"models/init.go:34","msg":"MySQL数据库链接成功","serviceName":"rhine-cloud-driver"}
+{"level":"INFO","time":"2023-02-16T23:11:36.581+0800","linenum":"redis/redis.go:28","msg":"Redis链接成功","serviceName":"rhine-cloud-driver"}
+{"level":"ERROR","time":"2023-02-16T23:28:15.703+0800","linenum":"redis/redis.go:43","msg":"redis cluster get key error:","serviceName":"rhine-cloud-driver","error":"redis: nil"}
+{"level":"INFO","time":"2023-02-16T23:30:03.020+0800","linenum":"models/init.go:34","msg":"MySQL数据库链接成功","serviceName":"rhine-cloud-driver"}
+{"level":"INFO","time":"2023-02-16T23:30:03.099+0800","linenum":"redis/redis.go:28","msg":"Redis链接成功","serviceName":"rhine-cloud-driver"}

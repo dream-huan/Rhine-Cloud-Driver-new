@@ -5,6 +5,7 @@ import (
 	"Rhine-Cloud-Driver/logic/jwt"
 	model "Rhine-Cloud-Driver/models"
 	"github.com/gin-gonic/gin"
+	"strconv"
 	"time"
 )
 
@@ -27,17 +28,19 @@ func GetShareDetail(c *gin.Context) {
 		return
 	}
 	// 从shareKey还原出shareID
-	shareID, err := common.HashDecode(data.ShareKey)
+	shareID, err := common.HashDecode(data.ShareKey, 4)
 	if err != nil {
 		makeResult(c, 200, common.NewError(common.ERROR_COMMON_TOOLS_HASH_DECODE_FAILED), nil)
 		return
 	}
-	name, email, originFiles, err := model.GetShareDetail(shareID, data.SharePassword, data.SharePath)
+	name, uid, originFiles, err := model.GetShareDetail(shareID, data.SharePassword, data.SharePath)
 	// 对邮箱进行MD5加密后返回给用户
 	if err != nil {
 		makeResult(c, 200, err, nil)
 		return
 	}
+	//hash := md5.New()
+	//hashValue := hex.EncodeToString(hash.Sum([]byte(email)))
 	files := make([]FileSystem, len(originFiles))
 	for i := range originFiles {
 		files[i] = FileSystem{
@@ -50,7 +53,7 @@ func GetShareDetail(c *gin.Context) {
 	}
 	makeResult(c, 200, nil, GetShareDetailResponse{
 		Name:      name,
-		AvatarURL: email,
+		AvatarURL: strconv.FormatUint(uid, 10),
 		Files:     files,
 	})
 }
@@ -85,7 +88,7 @@ func CreateNewShare(c *gin.Context) {
 		return
 	}
 	// 将shareID转化为shareKey
-	shareKey, err := common.HashEncode([]int{int(shareID)})
+	shareKey, err := common.HashEncode([]int{int(shareID)}, 4)
 	if err != nil {
 		// 转化失败
 		makeResult(c, 200, common.NewError(common.ERROR_COMMON_TOOLS_HASH_ENCODE_FAILED), nil)
@@ -110,7 +113,7 @@ func TransferFiles(c *gin.Context) {
 		return
 	}
 	// 从shareKey还原出shareID
-	shareID, err := common.HashDecode(data.ShareKey)
+	shareID, err := common.HashDecode(data.ShareKey, 4)
 	if err != nil {
 		makeResult(c, 200, common.NewError(common.ERROR_COMMON_TOOLS_HASH_DECODE_FAILED), nil)
 		return
@@ -121,4 +124,108 @@ func TransferFiles(c *gin.Context) {
 		return
 	}
 	makeResult(c, 200, nil, nil)
+}
+
+type CancelShareRequest struct {
+	ShareKey string `json:"share_key"`
+}
+
+func CancelShare(c *gin.Context) {
+	token, _ := c.Cookie("token")
+	_, uid := jwt.TokenGetUid(token)
+	var data CancelShareRequest
+	if err := c.ShouldBindJSON(&data); err != nil {
+		makeResult(c, 200, err, nil)
+		return
+	}
+	// 从shareKey还原出shareID
+	shareID, err := common.HashDecode(data.ShareKey, 4)
+	if err != nil {
+		makeResult(c, 200, common.NewError(common.ERROR_COMMON_TOOLS_HASH_DECODE_FAILED), nil)
+		return
+	}
+	err = model.CancelShare(uid, shareID)
+	if err != nil {
+		makeResult(c, 200, err, nil)
+		return
+	}
+	makeResult(c, 200, nil, nil)
+}
+
+type GetMyShareResponse struct {
+	Lists []ShareDetail
+}
+
+type ShareDetail struct {
+	ShareKey      string `json:"share_key"`
+	ExpireTime    string `json:"expire_time"`
+	FileName      string `json:"file_name"`
+	DownloadTimes uint64 `json:"download_times"`
+	ViewTimes     uint64 `json:"view_times"`
+	Password      string `json:"password"`
+	IsDir         bool   `json:"is_dir"`
+}
+
+func GetMyShare(c *gin.Context) {
+	token, _ := c.Cookie("token")
+	_, uid := jwt.TokenGetUid(token)
+	list := model.GetMyShare(uid)
+	shareList := make([]ShareDetail, len(list))
+	for i := range list {
+		file, err := model.GetFileInfo(list[i].FileID, "all")
+		if err != nil {
+			makeResult(c, 200, err, nil)
+			return
+		}
+		shareKey, err := common.HashEncode([]int{int(list[i].ShareID)}, 4)
+		if err != nil {
+			makeResult(c, 200, common.NewError(common.ERROR_COMMON_TOOLS_HASH_ENCODE_FAILED), nil)
+			return
+		}
+		shareList[i] = ShareDetail{
+			FileName:      file.(model.File).FileName,
+			ExpireTime:    list[i].ExpireTime,
+			ShareKey:      shareKey,
+			DownloadTimes: list[i].DownloadTimes,
+			ViewTimes:     list[i].ViewTimes,
+			Password:      list[i].Password,
+			IsDir:         file.(model.File).IsDir,
+		}
+	}
+	makeResult(c, 200, nil, GetMyShareResponse{shareList})
+}
+
+type GetShareFileRequest struct {
+	FileID        uint64 `json:"file_id"`
+	ShareKey      string `json:"share_key"`
+	SharePassword string `json:"share_password"`
+}
+
+func GetShareFile(c *gin.Context) {
+	var data GetShareFileRequest
+	if err := c.ShouldBindJSON(&data); err != nil {
+		makeResult(c, 200, err, nil)
+		return
+	}
+	shareID, err := common.HashDecode(data.ShareKey, 4)
+	if err != nil {
+		makeResult(c, 200, common.NewError(common.ERROR_COMMON_TOOLS_HASH_DECODE_FAILED), nil)
+		return
+	}
+	file, err := model.GetShareFile(shareID, data.SharePassword, data.FileID)
+	if err != nil {
+		makeResult(c, 200, err, nil)
+		return
+	}
+	fileKey, err := common.HashEncode([]int{int(file.FileID)}, 6)
+	if err != nil {
+		makeResult(c, 200, common.NewError(common.ERROR_COMMON_TOOLS_HASH_ENCODE_FAILED), nil)
+		return
+	}
+	downloadID, err := model.GetDownloadKey(file.Uid, file.FileID, fileKey)
+	if err != nil {
+		makeResult(c, 200, err, nil)
+		return
+	}
+	makeResult(c, 200, nil, GetDownloadKeyResponse{downloadID})
 }

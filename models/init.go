@@ -51,4 +51,5 @@ func Init(cf config.Config) {
 	initJwt(cf.JwtKey)
 	common.NewWorker(1)
 	redis.InitRedis(cf.RedisManager)
+	InitGroupPermission()
 }

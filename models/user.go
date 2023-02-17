@@ -4,9 +4,11 @@ import (
 	"Rhine-Cloud-Driver/common"
 	"Rhine-Cloud-Driver/logic/jwt"
 	"Rhine-Cloud-Driver/logic/log"
+	"Rhine-Cloud-Driver/logic/redis"
 	"crypto/sha256"
 	"encoding/hex"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -23,7 +25,8 @@ type User struct {
 	CreateTime   string `json:"create_time"`                                  // 创建时间
 	UsedStorage  uint64 `json:"used_storage"`                                 // 已用容量
 	TotalStorage uint64 `json:"total_storage"`                                // 总容量
-	GroupId      int64  `json:"group_id"`                                     // 所属用户组
+	GroupId      uint64 `json:"group_id"`                                     // 所属用户组
+	GroupName    string `json:"group_name" gorm:"-:all"`
 }
 
 func setHaltHash(password string) string {
@@ -103,7 +106,7 @@ func (user *User) VerifyAccess(token string, uid uint64, email string, password 
 	}
 	if user.verifyPassword(password) {
 		// 生成新的token下发
-		token, err := jwt.GenerateToken(user.Uid)
+		token, err := jwt.GenerateToken(user.Uid, user.Email)
 		if err != nil {
 			log.Logger.Error("生成token错误", zap.Error(err))
 			return "", common.NewError(common.ERROR_JWT_GENERATE_TOKEN_FAILED)
@@ -136,7 +139,15 @@ func (user *User) AddUser() error {
 		return err
 	}
 	user.CreateTime = time.Now().Format("2006-01-02 15:04:05")
-	user.TotalStorage = 100000000
+	// 判断user用户组来赋予容量
+	var userStorage interface{}
+	if user.GroupId == 0 {
+		user.GroupId = 2
+		userStorage = redis.GetRedisKey("groups_storage_" + strconv.FormatUint(user.GroupId, 10))
+	} else {
+		userStorage = redis.GetRedisKey("groups_storage_" + strconv.FormatUint(user.GroupId, 10))
+	}
+	user.TotalStorage, _ = strconv.ParseUint(userStorage.(string), 10, 64)
 	tx := DB.Session(&gorm.Session{})
 	err = tx.Table("users").Create(&user).Error
 	if err != nil {
@@ -170,16 +181,33 @@ func (user *User) GetUserDetail() {
 	// 回传uid来进行校验
 	// 获取信息可以不需要有那么强的实时性，可以不取事务
 	DB.Table("users").Where("uid", user.Uid).Find(&user)
+	if user.Email == "" {
+		return
+	}
+	groupName := redis.GetRedisKey("groups_name_" + strconv.FormatUint(user.GroupId, 10))
+	user.GroupName = groupName.(string)
 }
 
-//// 禁止用户在考虑新建一个用户组，直接没有任何功能，即为封禁。
-//// todo 修改用户所属用户组
-//func (user *User) EditUserGroup(newGroupId int64) {
-//
-//}
-//
-//func (user *User) PermissionControl(function int) {
-//	// 获取所属用户组，拿到拥有权限
-//	// 将权限与所要权限比对，判定是否一致
-//	// 这个数据存redis会比较好
-//}
+func VerifyAdmin(uid uint64) bool {
+	return PermissionVerify(uid, PERMISSION_ADMIN_READ)
+}
+
+func ChangeUserInfo(uid uint64, newName string, oldPassword string, newPassword string) error {
+	if newName != "" {
+		if !checkNewName(newName) {
+			return common.NewError(common.ERROR_USER_NAME_LENGTH_NOT_MATCH)
+		}
+		DB.Table("users").Where("uid = ?", uid).Update("name", newName)
+		return nil
+	}
+	if !checkNewPassword(newPassword) {
+		return common.NewError(common.ERROR_USER_PASSWORD_NOT_MATCH_RULES)
+	}
+	var user User
+	DB.Table("users").Where("uid = ?", uid).Find(&user)
+	if !user.verifyPassword(oldPassword) {
+		return common.NewError(common.ERROR_USER_UID_PASSWORD_WRONG)
+	}
+	DB.Table("users").Where("uid = ?", uid).Update("password", setHaltHash(newPassword))
+	return nil
+}

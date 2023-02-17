@@ -2,20 +2,21 @@ package model
 
 import (
 	"Rhine-Cloud-Driver/common"
-	"crypto/md5"
-	"encoding/hex"
+	"gorm.io/gorm"
 	"strings"
 	"time"
 )
 
 type Share struct {
-	ShareID    uint64 `json:"share_id" gorm:"primaryKey;auto_increment"`
-	Uid        uint64 `json:"uid" gorm:"index:idx_uid"`
-	FileID     uint64 `json:"file_id"`
-	ExpireTime string `json:"expire_time"`
-	CreateTime string `json:"create_time"`
-	Password   string `json:"password"`
-	Valid      bool   `json:"valid"`
+	ShareID       uint64 `json:"share_id" gorm:"primaryKey;auto_increment"`
+	Uid           uint64 `json:"uid" gorm:"index:idx_uid"`
+	FileID        uint64 `json:"file_id"`
+	ExpireTime    string `json:"expire_time"`
+	CreateTime    string `json:"create_time"`
+	Password      string `json:"password"`
+	Valid         bool   `json:"valid"`
+	ViewTimes     uint64 `json:"view_times"`
+	DownloadTimes uint64 `json:"download_times"`
 }
 
 func CheckSharePathValid(path string, uid, fileID uint64) ([]File, error) {
@@ -46,31 +47,31 @@ func CheckSharePathValid(path string, uid, fileID uint64) ([]File, error) {
 	}
 }
 
-func GetShareDetail(shareID uint64, password string, path string) (string, string, []File, error) {
+func GetShareDetail(shareID uint64, password string, path string) (string, uint64, []File, error) {
 	var ShareDetail Share
-	err := DB.Table("shares").Where("share_id=?", shareID).Find(&ShareDetail).Error
+	err := DB.Table("shares").Where("share_id=? and valid = true", shareID).Find(&ShareDetail).Error
 	if err != nil || (ShareDetail.ExpireTime != "-" && time.Now().Format("2006-01-02 15:04:05") >= ShareDetail.ExpireTime) {
 		// 分享无效或已过期
-		return "", "", nil, common.NewError(common.ERROR_SHARE_NOT_EXIST)
+		return "", 0, nil, common.NewError(common.ERROR_SHARE_NOT_EXIST)
 	}
 	// 密码是否正确或无密码
 	user := User{}
 	DB.Table("users").Where("uid=?", ShareDetail.Uid).Find(&user)
-	hash := md5.New()
-	hashValue := hex.EncodeToString(hash.Sum([]byte(user.Email)))
+	// 访问次数增加一次
+	DB.Table("shares").Where("share_id=?", shareID).Update("view_times", gorm.Expr("view_times+1"))
 	if ShareDetail.Password != "" && password != ShareDetail.Password {
 		// 仅返回用户名称和头像信息，不返回文件系统
 		if password != "" {
-			return "", "", nil, common.NewError(common.ERROR_SHARE_PASSWORD_WRONG)
+			return "", 0, nil, common.NewError(common.ERROR_SHARE_PASSWORD_WRONG)
 		}
-		return user.Name, hashValue, nil, nil
+		return user.Name, user.Uid, nil, nil
 	}
 	// 返回全部信息
 	files, err := CheckSharePathValid(path, ShareDetail.Uid, ShareDetail.FileID)
 	if err != nil {
-		return "", "", nil, err
+		return "", 0, nil, err
 	}
-	return user.Name, hashValue, files, nil
+	return user.Name, user.Uid, files, nil
 }
 
 func GetMyShare(uid uint64) (shareList []Share) {
@@ -96,6 +97,10 @@ func TransferFiles(uid, shareID uint64, moveFileList []uint64, targetDirID uint6
 		tx.Rollback()
 		return common.NewError(common.ERROR_FILE_TARGETDIR_INVALID)
 	}
+	// 拿到用户信息
+	user := User{}
+	tx.Table("users").Where("uid=?", uid).Find(&user)
+	allFilesStorage := uint64(0)
 	for _, v := range moveFileList {
 		thisFile := File{}
 		err = tx.Table("files").Where("file_id=?", v).Find(&thisFile).Error
@@ -122,8 +127,13 @@ func TransferFiles(uid, shareID uint64, moveFileList []uint64, targetDirID uint6
 			return common.NewError(common.ERROR_FILE_INVALID)
 		}
 
-		// 空间判定没做，今天完成
-
+		// 目标文件夹是否有同名文件
+		count := int64(0)
+		tx.Table("files").Where("parent_id=? and file_name=? and valid=true and is_dir=?", targetDirID, thisFile.FileName, thisFile.IsDir).Count(&count)
+		if count > 0 {
+			tx.Rollback()
+			return common.NewError(common.ERROR_FILE_TARGETDIR_SAME_FILES)
+		}
 		// 先建立自己
 		newFile := File{
 			Uid:         uid,
@@ -133,6 +143,7 @@ func TransferFiles(uid, shareID uint64, moveFileList []uint64, targetDirID uint6
 			CreateTime:  time.Now().Format("2006-01-02 15:04:05"),
 			Valid:       true,
 			IsDir:       thisFile.IsDir,
+			MD5:         thisFile.MD5,
 			Path:        targetDir.Path + targetDir.FileName + "/",
 		}
 		tx.Table("files").Create(&newFile)
@@ -140,7 +151,7 @@ func TransferFiles(uid, shareID uint64, moveFileList []uint64, targetDirID uint6
 			parentMap[thisFile.FileID] = newFile.FileID
 			// 拿到全部属于该前缀的文件
 			var subFiles []File
-			tx.Table("files").Where("uid = ? and path like ?", thisFile.Uid, thisFile.Path+thisFile.FileName+"/"+"%").Order("is_dir").Find(&subFiles)
+			tx.Table("files").Where("uid = ? and path like ?", thisFile.Uid, thisFile.Path+thisFile.FileName+"/%").Order("is_dir").Find(&subFiles)
 			for i := range subFiles {
 				// 替换前缀
 				newSubFile := File{
@@ -151,14 +162,33 @@ func TransferFiles(uid, shareID uint64, moveFileList []uint64, targetDirID uint6
 					CreateTime:  time.Now().Format("2006-01-02 15:04:05"),
 					Valid:       true,
 					IsDir:       subFiles[i].IsDir,
+					MD5:         subFiles[i].MD5,
 					Path:        strings.Replace(subFiles[i].Path, thisFile.Path, newFile.Path, 1),
 				}
 				tx.Table("files").Create(&newSubFile)
 				if subFiles[i].IsDir == true {
 					parentMap[subFiles[i].FileID] = newSubFile.FileID
+				} else {
+					if user.UsedStorage+allFilesStorage > user.TotalStorage {
+						tx.Rollback()
+						return common.NewError(common.ERROR_USER_STORAGE_EXCEED)
+					}
+					allFilesStorage += subFiles[i].FileStorage
 				}
 			}
+		} else {
+			if user.UsedStorage+allFilesStorage > user.TotalStorage {
+				tx.Rollback()
+				return common.NewError(common.ERROR_USER_STORAGE_EXCEED)
+			}
+			allFilesStorage += newFile.FileStorage
 		}
+	}
+	// 容量增加
+	err = tx.Table("users").Where("uid=?", uid).Update("used_storage", gorm.Expr("used_storage+?", allFilesStorage)).Error
+	if err != nil {
+		tx.Rollback()
+		return common.NewError(common.ERROR_USER_STORAGE_EXCEED)
 	}
 	tx.Commit()
 	return nil
@@ -193,17 +223,53 @@ func CreateShare(uid, fileID uint64, ExpireTime string, password string) (uint64
 	return newShare.ShareID, nil
 }
 
-func CancelShare(uid uint64, shareID uint64) error {
-	// 检查该shareID是否属于该uid
+func CancelShareCheck(uid uint64, shareID uint64) error {
+	// 如果uid拥有网站管理写权限或最高权限则允许更改
+	if PermissionVerify(uid, PERMISSION_ADMIN_WRITE) {
+		return nil
+	}
 	var shareDetail Share
 	err := DB.Table("shares").Where("share_id=?", shareID).Find(&shareDetail).Error
 	if err != nil || shareDetail.Uid != uid {
 		// 无权访问这些文件
 		return common.NewError(common.ERROR_SHARE_FILE_INVALID)
 	}
-	err = DB.Table("shares").Where("share_id=?", shareID).Update("valid", 0).Error
+	return nil
+}
+
+func CancelShare(uid uint64, shareID uint64) error {
+	if err := CancelShareCheck(uid, shareID); err != nil {
+		return err
+	}
+	err := DB.Table("shares").Where("share_id=?", shareID).Update("valid", 0).Error
 	if err != nil {
 		return common.NewError(common.ERROR_DB_WRITE_FAILED)
 	}
 	return nil
+}
+
+func GetShareFile(shareID uint64, password string, fileID uint64) (file File, err error) {
+	var shareDetail Share
+	err = DB.Table("shares").Where("share_id = ? and valid = true and (now()<expire_time or expire_time='-')", shareID).Find(&shareDetail).Error
+	if err != nil || password != shareDetail.Password {
+		return File{}, common.NewError(common.ERROR_SHARE_PASSWORD_WRONG)
+	}
+	DB.Table("shares").Where("share_id = ?", shareID).Update("download_times", gorm.Expr("download_times + 1"))
+	var parentFile File
+	err = DB.Table("files").Where("file_id = ?", shareDetail.FileID).Find(&parentFile).Error
+	if err != nil || parentFile.FileID == 0 {
+		return File{}, common.NewError(common.ERROR_FILE_NOT_EXISTS)
+	}
+	if fileID == parentFile.FileID {
+		return parentFile, nil
+	}
+	err = DB.Table("files").Where("file_id = ?", fileID).Find(&file).Error
+	if err != nil || file.FileID == 0 {
+		return File{}, common.NewError(common.ERROR_FILE_NOT_EXISTS)
+	}
+	parentFilePath := parentFile.Path + parentFile.FileName + "/"
+	if file.Uid == parentFile.Uid && len(file.Path) >= len(parentFilePath) && parentFilePath == file.Path[:len(parentFilePath)] {
+		return file, nil
+	}
+	return File{}, common.NewError(common.ERROR_DOWNLOAD_FILE_INVALID)
 }

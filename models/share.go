@@ -143,6 +143,7 @@ func TransferFiles(uid, shareID uint64, moveFileList []uint64, targetDirID uint6
 			CreateTime:  time.Now().Format("2006-01-02 15:04:05"),
 			Valid:       true,
 			IsDir:       thisFile.IsDir,
+			IsOrigin:    false,
 			MD5:         thisFile.MD5,
 			Path:        targetDir.Path + targetDir.FileName + "/",
 		}
@@ -162,6 +163,7 @@ func TransferFiles(uid, shareID uint64, moveFileList []uint64, targetDirID uint6
 					CreateTime:  time.Now().Format("2006-01-02 15:04:05"),
 					Valid:       true,
 					IsDir:       subFiles[i].IsDir,
+					IsOrigin:    false,
 					MD5:         subFiles[i].MD5,
 					Path:        strings.Replace(subFiles[i].Path, thisFile.Path, newFile.Path, 1),
 				}

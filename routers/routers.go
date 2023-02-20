@@ -63,10 +63,15 @@ func InitRouter(cf config.Config) *gin.Engine {
 		// 管理员路由
 		adminRouter := r.Group("admin")
 		adminRouter.Use(middleware.PermissionVerify(model.PERMISSION_ADMIN_READ))
-		adminRouter.GET("web-setting", controllers.AdminDemo)
+		adminRouter.GET("web_data", controllers.AdminDemo)
 		adminRouter.POST("get_all_users", controllers.GetAllUser)
 		adminRouter.POST("get_user_info", controllers.GetUserInfo)
 		adminRouter.POST("get_all_shares", controllers.GetAllShare)
+		adminRouter.POST("get_all_groups", controllers.GetAllGroup)
+		adminRouter.POST("get_all_files", controllers.GetAllFile)
+		adminRouter.POST("get_user_detail", controllers.AdminGetUserDetail)
+		adminRouter.POST("edit_user_info", controllers.AdminEditUserInfo)
+		adminRouter.POST("upload_avatar", controllers.AdminUploadAvatar)
 	}
 
 	router.Run(cf.Server.Host)

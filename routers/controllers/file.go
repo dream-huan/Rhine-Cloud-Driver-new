@@ -119,7 +119,7 @@ func MergeFileChunks(c *gin.Context) {
 		return
 	}
 	fileSize := (chunkNum-1)*(20*1024*1024) + fi.Size()
-	err = model.AddFile(uid, md5, fileName, uint64(fileSize), parentID)
+	err = model.AddFile(uid, md5, fileName, uint64(fileSize), parentID, true)
 	if err != nil {
 		makeResult(c, 200, err, nil)
 		return

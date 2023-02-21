@@ -128,31 +128,6 @@ func GetGroupInfo(groupID uint64) (groupDetail Group, err error) {
 	return
 }
 
-func DelGroup(uid, groupID uint64) error {
-	// 判断是否有权限删除
-	var user User
-	err := DB.Table("users").Where("uid = ?", uid).Find(&user).Error
-	if err != nil || user.Uid == 0 {
-		// 此用户不存在
-		return common.NewError(common.ERROR_AUTH_UID_NOT_EXIST)
-	}
-	if !ChangePermissionVerify(groupID, user.GroupId, 0, 0) {
-		return common.NewError(common.ERROR_AUTH_NOT_PERMISSION)
-	}
-	// 将该用户组的全部用户移动为其他用户组
-	// 默认用户组为注册用户，id为2
-	// 当用户组变更时，他们的容量也跟着变化
-	groupIDStr := strconv.FormatUint(groupID, 10)
-	newGroupStorage := redis.GetRedisKey("groups_storage_" + groupIDStr)
-	DB.Table("users").Where("group_id = ?", groupID).Updates(User{GroupId: groupID, TotalStorage: newGroupStorage.(uint64)})
-	// 数据库删除，redis注销
-	DB.Table("groups").Delete("group_id = ?", groupID)
-	redis.DelRedisKey("groups_permission_" + groupIDStr)
-	redis.DelRedisKey("groups_name_" + groupIDStr)
-	redis.DelRedisKey("groups_storage_" + groupIDStr)
-	return nil
-}
-
 func PermissionVerify(uid uint64, permissionCode int) bool {
 	var user User
 	// 拿到用户的用户组ID

@@ -74,7 +74,7 @@ func checkNewEmail(email string) bool {
 	return matched
 }
 
-func (user *User) verifyPassword(password string) bool {
+func (user *User) VerifyPassword(password string) bool {
 	stringArray := strings.Split(user.Password, ":")
 	hash := sha256.New()
 	value := hex.EncodeToString(hash.Sum([]byte(password + stringArray[1])))
@@ -104,7 +104,7 @@ func (user *User) VerifyAccess(token string, uid uint64, email string, password 
 	if count == 0 {
 		return "", common.NewError(common.ERROR_USER_UID_PASSWORD_WRONG)
 	}
-	if user.verifyPassword(password) {
+	if user.VerifyPassword(password) {
 		// 生成新的token下发
 		token, err := jwt.GenerateToken(user.Uid, user.Email)
 		if err != nil {
@@ -205,7 +205,7 @@ func ChangeUserInfo(uid uint64, newName string, oldPassword string, newPassword 
 	}
 	var user User
 	DB.Table("users").Where("uid = ?", uid).Find(&user)
-	if !user.verifyPassword(oldPassword) {
+	if !user.VerifyPassword(oldPassword) {
 		return common.NewError(common.ERROR_USER_UID_PASSWORD_WRONG)
 	}
 	DB.Table("users").Where("uid = ?", uid).Update("password", setHaltHash(newPassword))

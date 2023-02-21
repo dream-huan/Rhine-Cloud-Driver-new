@@ -91,8 +91,8 @@ func UserRegister(c *gin.Context) {
 type GroupDetail struct {
 	GroupId         uint64 `json:"group_id"`
 	GroupName       string `json:"group_name"`
-	GroupPermission uint64 `json:"group_permission,omitempty"`
-	GroupStorage    uint64 `json:"group_storage,omitempty"`
+	GroupPermission uint64 `json:"group_permission"`
+	GroupStorage    uint64 `json:"group_storage"`
 }
 
 type UserDetail struct {

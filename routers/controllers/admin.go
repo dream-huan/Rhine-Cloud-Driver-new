@@ -264,6 +264,92 @@ func AdminUploadAvatar(c *gin.Context) {
 
 //func AdminGetFile()
 
+type AdminCreateGroupRequest struct {
+	NewGroupName       string `json:"new_group_name"`
+	NewGroupPermission int64  `json:"new_group_permission"`
+	NewGroupStorage    string `json:"new_group_storage"`
+}
+
+func AdminCreateGroup(c *gin.Context) {
+	token, _ := c.Cookie("token")
+	_, uid := jwt.TokenGetUid(token)
+	var data AdminCreateGroupRequest
+	if err := c.ShouldBindJSON(&data); err != nil {
+		makeResult(c, 200, err, nil)
+		return
+	}
+	err := model.AdminCreateGroup(uid, data.NewGroupName, data.NewGroupPermission, data.NewGroupStorage)
+	makeResult(c, 200, err, nil)
+}
+
+type AdminEditGroupInfoRequest struct {
+	GroupId            int64  `json:"group_id"`
+	NewGroupName       string `json:"new_group_name"`
+	NewGroupPermission int64  `json:"new_group_permission"`
+	NewGroupStorage    string `json:"new_group_storage"`
+}
+
+func AdminEditGroupInfo(c *gin.Context) {
+	token, _ := c.Cookie("token")
+	_, uid := jwt.TokenGetUid(token)
+	var data AdminEditGroupInfoRequest
+	if err := c.ShouldBindJSON(&data); err != nil {
+		makeResult(c, 200, err, nil)
+		return
+	}
+	err := model.AdminEditGroupInfo(uid, uint64(data.GroupId), data.NewGroupName, data.NewGroupPermission, data.NewGroupStorage)
+	makeResult(c, 200, err, nil)
+}
+
+type AdminDeleteGroupRequest struct {
+	GroupId int64 `json:"group_id"`
+}
+
+func AdminDeleteGroup(c *gin.Context) {
+	token, _ := c.Cookie("token")
+	_, uid := jwt.TokenGetUid(token)
+	var data AdminDeleteGroupRequest
+	if err := c.ShouldBindJSON(&data); err != nil {
+		makeResult(c, 200, err, nil)
+		return
+	}
+	err := model.AdminDeleteGroup(uid, uint64(data.GroupId))
+	makeResult(c, 200, err, nil)
+
+}
+
+type VerifyAdminRequest struct {
+	Password string `json:"password"`
+}
+
+func VerifyAdmin(c *gin.Context) {
+	// 查询group权限
+	token, _ := c.Cookie("token")
+	_, uid := jwt.TokenGetUid(token)
+	var data VerifyAdminRequest
+	if err := c.ShouldBindJSON(&data); err != nil {
+		makeResult(c, 200, err, nil)
+		return
+	}
+	// 先验证recaptcha是否通过
+	//if isok := common.VerifyToken(data.recaptchaToken); isok != true {
+	//	makeResult(c, 200, common.NewError(common.ERROR_COMMON_RECAPTCHA_VERIFICATION), nil)
+	//	return
+	//}
+	// 验证密码
+	user := model.User{Uid: uid}
+	user.GetUserDetail()
+	if !user.VerifyPassword(data.Password) {
+		makeResult(c, 200, common.NewError(common.ERROR_USER_UID_PASSWORD_WRONG), nil)
+		return
+	}
+	if model.PermissionVerify(uid, model.PERMISSION_ADMIN_WRITE) {
+		makeResult(c, 200, nil, 2)
+		return
+	}
+	makeResult(c, 200, nil, 1)
+}
+
 func GetActiveUserData(c *gin.Context) {
 
 }

@@ -417,7 +417,7 @@ func GetDownloadKey(uid, fileID uint64, fileKey string) (downloadID string, err 
 	// 验证是否是本人的文件
 	var file File
 	err = DB.Table("files").Where("file_id = ? and valid = true and is_dir = false", fileID).Find(&file).Error
-	if err != nil || file.Uid != uid {
+	if !PermissionVerify(uid, PERMISSION_ADMIN_READ) && (err != nil || file.Uid != uid) {
 		return "", common.NewError(common.ERROR_DOWNLOAD_FILE_INVALID)
 	}
 	downloadID = common.RandStringRunes(6) + fileKey

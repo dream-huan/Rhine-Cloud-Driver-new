@@ -86,6 +86,7 @@ const (
 const (
 	ERROR_GROUP_NOT_EXIST = 1000001
 	ERROR_GROUP_NOT_ADMIN = 1000002
+	ERROR_GROUP_DEFAULT   = 1000003
 )
 
 // 传值相关
@@ -139,6 +140,7 @@ var errMap = map[int]string{
 	ERROR_GROUP_NOT_ADMIN:                 "你没有进入管理界面的权限",
 	ERROR_PARA_INVALID:                    "参数非法",
 	ERROR_USER_NOT_EXIST:                  "目标用户不存在",
+	ERROR_GROUP_DEFAULT:                   "默认用户组不能被删除",
 }
 
 func NewError(errorNum int) error {

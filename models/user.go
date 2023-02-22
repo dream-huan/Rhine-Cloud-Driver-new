@@ -18,15 +18,16 @@ import (
 
 // 用户结构体
 type User struct {
-	Uid          uint64 `json:"uid" gorm:"primaryKey"`                        // 用户ID
-	Name         string `json:"name" gorm:"size:30"`                          // 用户名称
-	Password     string `json:"password" gorm:"size:255"`                     // 用户密码
-	Email        string `json:"email" gorm:"size:255;index:idx_email,unique"` // 用户邮箱
-	CreateTime   string `json:"create_time"`                                  // 创建时间
-	UsedStorage  uint64 `json:"used_storage"`                                 // 已用容量
-	TotalStorage uint64 `json:"total_storage"`                                // 总容量
-	GroupId      uint64 `json:"group_id"`                                     // 所属用户组
-	GroupName    string `json:"group_name" gorm:"-:all"`
+	Uid             uint64 `json:"uid" gorm:"primaryKey"`                        // 用户ID
+	Name            string `json:"name" gorm:"size:30"`                          // 用户名称
+	Password        string `json:"password" gorm:"size:255"`                     // 用户密码
+	Email           string `json:"email" gorm:"size:255;index:idx_email,unique"` // 用户邮箱
+	CreateTime      string `json:"create_time"`                                  // 创建时间
+	UsedStorage     uint64 `json:"used_storage"`                                 // 已用容量
+	TotalStorage    uint64 `json:"total_storage"`                                // 总容量
+	GroupId         uint64 `json:"group_id"`                                     // 所属用户组
+	GroupName       string `json:"group_name" gorm:"-:all"`
+	GroupPermission uint64 `json:"group_permission" gorm:"-:all"`
 }
 
 func setHaltHash(password string) string {
@@ -186,6 +187,8 @@ func (user *User) GetUserDetail() {
 	}
 	groupName := redis.GetRedisKey("groups_name_" + strconv.FormatUint(user.GroupId, 10))
 	user.GroupName = groupName.(string)
+	groupPermission := redis.GetRedisKey("groups_permission_" + strconv.FormatUint(user.GroupId, 10))
+	user.GroupPermission, _ = strconv.ParseUint(groupPermission.(string), 10, 64)
 }
 
 func VerifyAdmin(uid uint64) bool {

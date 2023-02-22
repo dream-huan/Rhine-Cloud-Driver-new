@@ -35,7 +35,7 @@ func PermissionVerify(permissionCode int) gin.HandlerFunc {
 		token, _ := c.Cookie("token")
 		_, uid := jwt.TokenGetUid(token)
 		if !model.PermissionVerify(uid, permissionCode) {
-			c.JSON(401, common.ResponseData{Code: 1, Msg: "您被限制访问此功能", Data: nil})
+			c.JSON(200, common.ResponseData{Code: 1, Msg: "您被限制访问此功能", Data: nil})
 			c.Abort()
 		}
 		c.Next()

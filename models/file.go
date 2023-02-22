@@ -128,7 +128,8 @@ func BuildFileSystem(uid uint64, path string, limit, offset int) (count int64, d
 	}
 	dirFileID = fileID
 	DB.Table("files").Where("parent_id = ? and valid = true", fileID).Count(&count)
-	DB.Table("files").Where("parent_id = ? and valid = true", fileID).Offset(offset).Limit(limit).Find(&files)
+	//DB.Table("files").Where("parent_id = ? and valid = true", fileID).Offset(offset).Limit(limit).Find(&files)
+	DB.Table("files").Where("parent_id = ? and valid = true", fileID).Find(&files)
 	return
 }
 

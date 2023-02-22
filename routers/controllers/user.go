@@ -127,8 +127,9 @@ func GetUserDetail(c *gin.Context) {
 		UsedStorage:  user.UsedStorage,
 		TotalStorage: user.TotalStorage,
 		Group: GroupDetail{
-			GroupId:   user.GroupId,
-			GroupName: user.GroupName,
+			GroupId:         user.GroupId,
+			GroupName:       user.GroupName,
+			GroupPermission: user.GroupPermission,
 		},
 	}
 	makeResult(c, 200, nil, responseData)

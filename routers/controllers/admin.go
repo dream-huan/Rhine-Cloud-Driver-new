@@ -319,7 +319,8 @@ func AdminDeleteGroup(c *gin.Context) {
 }
 
 type VerifyAdminRequest struct {
-	Password string `json:"password"`
+	Password       string `json:"password"`
+	RecaptchaToken string `json:"recaptcha_token"`
 }
 
 func VerifyAdmin(c *gin.Context) {
@@ -332,10 +333,10 @@ func VerifyAdmin(c *gin.Context) {
 		return
 	}
 	// 先验证recaptcha是否通过
-	//if isok := common.VerifyToken(data.recaptchaToken); isok != true {
-	//	makeResult(c, 200, common.NewError(common.ERROR_COMMON_RECAPTCHA_VERIFICATION), nil)
-	//	return
-	//}
+	if isok := common.VerifyToken(data.RecaptchaToken); isok != true {
+		makeResult(c, 200, common.NewError(common.ERROR_COMMON_RECAPTCHA_VERIFICATION), nil)
+		return
+	}
 	// 验证密码
 	user := model.User{Uid: uid}
 	user.GetUserDetail()

@@ -18,15 +18,16 @@ import (
 
 // 用户结构体
 type User struct {
-	Uid          uint64 `json:"uid" gorm:"primaryKey"`                        // 用户ID
-	Name         string `json:"name" gorm:"size:30"`                          // 用户名称
-	Password     string `json:"password" gorm:"size:255"`                     // 用户密码
-	Email        string `json:"email" gorm:"size:255;index:idx_email,unique"` // 用户邮箱
-	CreateTime   string `json:"create_time"`                                  // 创建时间
-	UsedStorage  uint64 `json:"used_storage"`                                 // 已用容量
-	TotalStorage uint64 `json:"total_storage"`                                // 总容量
-	GroupId      uint64 `json:"group_id"`                                     // 所属用户组
-	GroupName    string `json:"group_name" gorm:"-:all"`
+	Uid             uint64 `json:"uid" gorm:"primaryKey"`                        // 用户ID
+	Name            string `json:"name" gorm:"size:30"`                          // 用户名称
+	Password        string `json:"password" gorm:"size:255"`                     // 用户密码
+	Email           string `json:"email" gorm:"size:255;index:idx_email,unique"` // 用户邮箱
+	CreateTime      string `json:"create_time"`                                  // 创建时间
+	UsedStorage     uint64 `json:"used_storage"`                                 // 已用容量
+	TotalStorage    uint64 `json:"total_storage"`                                // 总容量
+	GroupId         uint64 `json:"group_id"`                                     // 所属用户组
+	GroupName       string `json:"group_name" gorm:"-:all"`
+	GroupPermission uint64 `json:"group_permission" gorm:"-:all"`
 }
 
 func setHaltHash(password string) string {
@@ -74,7 +75,7 @@ func checkNewEmail(email string) bool {
 	return matched
 }
 
-func (user *User) verifyPassword(password string) bool {
+func (user *User) VerifyPassword(password string) bool {
 	stringArray := strings.Split(user.Password, ":")
 	hash := sha256.New()
 	value := hex.EncodeToString(hash.Sum([]byte(password + stringArray[1])))
@@ -104,7 +105,7 @@ func (user *User) VerifyAccess(token string, uid uint64, email string, password 
 	if count == 0 {
 		return "", common.NewError(common.ERROR_USER_UID_PASSWORD_WRONG)
 	}
-	if user.verifyPassword(password) {
+	if user.VerifyPassword(password) {
 		// 生成新的token下发
 		token, err := jwt.GenerateToken(user.Uid, user.Email)
 		if err != nil {
@@ -186,6 +187,8 @@ func (user *User) GetUserDetail() {
 	}
 	groupName := redis.GetRedisKey("groups_name_" + strconv.FormatUint(user.GroupId, 10))
 	user.GroupName = groupName.(string)
+	groupPermission := redis.GetRedisKey("groups_permission_" + strconv.FormatUint(user.GroupId, 10))
+	user.GroupPermission, _ = strconv.ParseUint(groupPermission.(string), 10, 64)
 }
 
 func VerifyAdmin(uid uint64) bool {
@@ -205,7 +208,7 @@ func ChangeUserInfo(uid uint64, newName string, oldPassword string, newPassword 
 	}
 	var user User
 	DB.Table("users").Where("uid = ?", uid).Find(&user)
-	if !user.verifyPassword(oldPassword) {
+	if !user.VerifyPassword(oldPassword) {
 		return common.NewError(common.ERROR_USER_UID_PASSWORD_WRONG)
 	}
 	DB.Table("users").Where("uid = ?", uid).Update("password", setHaltHash(newPassword))

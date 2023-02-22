@@ -16,6 +16,7 @@ type File struct {
 	FileName    string `json:"file_name,omitempty" gorm:"size:255"`
 	FileStorage uint64 `json:"file_storage,omitempty"`
 	IsDir       bool   `json:"is_dir,omitempty"`
+	IsOrigin    bool   `json:"is_origin,omitempty"`
 	MD5         string `json:"md5,omitempty" gorm:"index:idx_md5"`
 	ParentID    uint64 `json:"parent_id,omitempty" gorm:"index:idx_parent_id"`
 	Path        string `json:"path,omitempty" gorm:"index:idx_path"`
@@ -127,7 +128,8 @@ func BuildFileSystem(uid uint64, path string, limit, offset int) (count int64, d
 	}
 	dirFileID = fileID
 	DB.Table("files").Where("parent_id = ? and valid = true", fileID).Count(&count)
-	DB.Table("files").Where("parent_id = ? and valid = true", fileID).Offset(offset).Limit(limit).Find(&files)
+	//DB.Table("files").Where("parent_id = ? and valid = true", fileID).Offset(offset).Limit(limit).Find(&files)
+	DB.Table("files").Where("parent_id = ? and valid = true", fileID).Find(&files)
 	return
 }
 
@@ -148,7 +150,7 @@ func UploadPrepare(md5, fileName string, chunkNum int64, uid, fileSize, targetDi
 	DB.Table("files").Where("md5=?", md5).Count(&count)
 	if count > 0 {
 		// 存在AddFile即可
-		err := AddFile(uid, md5, fileName, fileSize, targetDirID)
+		err := AddFile(uid, md5, fileName, fileSize, targetDirID, false)
 		if err != nil {
 			return true, "", "", err
 		}
@@ -234,7 +236,7 @@ func MergeFileChunks(md5, uploadID string) (int64, error) {
 	return 0, common.NewError(common.ERROR_FILE_CHUNK_MISSING)
 }
 
-func AddFile(uid uint64, md5 string, fileName string, fileSize, parentID uint64) error {
+func AddFile(uid uint64, md5 string, fileName string, fileSize, parentID uint64, isOrigin bool) error {
 	// 校验容量是否充足
 	var nowUser User
 	DB.Table("users").Where("uid=?", uid).Find(&nowUser)
@@ -265,6 +267,7 @@ func AddFile(uid uint64, md5 string, fileName string, fileSize, parentID uint64)
 		CreateTime:  time.Now().Format("2006-01-02 15:04:05"),
 		Valid:       true,
 		IsDir:       false,
+		IsOrigin:    isOrigin,
 		Path:        fileDir.Path + fileDir.FileName + "/",
 	}).Error
 	if err != nil {
@@ -308,6 +311,7 @@ func Mkdir(uid uint64, fileName string, parentID uint64) error {
 		ParentID:   parentID,
 		CreateTime: time.Now().Format("2006-01-02 15:04:05"),
 		IsDir:      true,
+		IsOrigin:   true,
 		Valid:      true,
 		Path:       targetDir.Path + targetDir.FileName + "/",
 	}).Error
@@ -414,7 +418,7 @@ func GetDownloadKey(uid, fileID uint64, fileKey string) (downloadID string, err 
 	// 验证是否是本人的文件
 	var file File
 	err = DB.Table("files").Where("file_id = ? and valid = true and is_dir = false", fileID).Find(&file).Error
-	if err != nil || file.Uid != uid {
+	if !PermissionVerify(uid, PERMISSION_ADMIN_READ) && (err != nil || file.Uid != uid) {
 		return "", common.NewError(common.ERROR_DOWNLOAD_FILE_INVALID)
 	}
 	downloadID = common.RandStringRunes(6) + fileKey

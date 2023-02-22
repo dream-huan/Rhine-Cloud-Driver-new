@@ -36,8 +36,6 @@ func InitRouter(cf config.Config) *gin.Engine {
 	userRouter.Use(middleware.TokenVerify())
 	{
 		userRouter.GET("get_info", controllers.GetUserDetail)
-		userRouter.POST("change_setting", controllers.ChangeUserInfo)
-		userRouter.POST("upload_avatar", controllers.UploadAvatar)
 		// 文件路由
 		fileRouter := r.Group("")
 		fileRouter.Use(middleware.PermissionVerify(model.PERMISSION_FILE))
@@ -59,14 +57,28 @@ func InitRouter(cf config.Config) *gin.Engine {
 
 		settingRouter := r.Group("")
 		settingRouter.Use(middleware.PermissionVerify(model.PERMISSION_SETTING))
+		settingRouter.POST("change_setting", controllers.ChangeUserInfo)
+		settingRouter.POST("upload_avatar", controllers.UploadAvatar)
 
 		// 管理员路由
 		adminRouter := r.Group("admin")
 		adminRouter.Use(middleware.PermissionVerify(model.PERMISSION_ADMIN_READ))
-		adminRouter.GET("web-setting", controllers.AdminDemo)
+		adminRouter.POST("verify_admin", controllers.VerifyAdmin)
+		adminRouter.GET("web_data", controllers.AdminDemo)
 		adminRouter.POST("get_all_users", controllers.GetAllUser)
 		adminRouter.POST("get_user_info", controllers.GetUserInfo)
 		adminRouter.POST("get_all_shares", controllers.GetAllShare)
+		adminRouter.POST("get_all_groups", controllers.GetAllGroup)
+		adminRouter.POST("get_all_files", controllers.GetAllFile)
+		adminRouter.POST("get_user_detail", controllers.AdminGetUserDetail)
+
+		adminWriteRouter := r.Group("admin")
+		adminWriteRouter.Use(middleware.PermissionVerify(model.PERMISSION_ADMIN_WRITE))
+		adminWriteRouter.POST("edit_user_info", controllers.AdminEditUserInfo)
+		adminWriteRouter.POST("upload_avatar", controllers.AdminUploadAvatar)
+		adminWriteRouter.POST("edit_group_info", controllers.AdminEditGroupInfo)
+		adminWriteRouter.POST("create_group", controllers.AdminCreateGroup)
+		adminWriteRouter.POST("delete_group", controllers.AdminDeleteGroup)
 	}
 
 	router.Run(cf.Server.Host)

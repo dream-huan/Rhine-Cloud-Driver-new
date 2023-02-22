@@ -84,13 +84,7 @@ func ChangeUsersGroup(changedUid, operatorUid, newGroupId uint64) error {
 		// 此用户不存在
 		return common.NewError(common.ERROR_AUTH_UID_NOT_EXIST)
 	}
-	changeUserPermissionStr := redis.GetRedisKey("groups_permission_" + strconv.FormatUint(changedUid, 10))
-	operatorUserPermissionStr := redis.GetRedisKey("groups_permission_" + strconv.FormatUint(operatorUid, 10))
-	changeUserPermission, _ := strconv.ParseInt(changeUserPermissionStr.(string), 10, 64)
-	operatorUserPermission, _ := strconv.ParseInt(operatorUserPermissionStr.(string), 10, 64)
-	// 鉴定操作者有网站修改权限
-	isok := (operatorUserPermission & (1 << PERMISSION_ADMIN_WRITE)) | (operatorUserPermission & (1 << PERMISSION_MAXIMUM))
-	if isok <= 0 || changeUserPermission >= operatorUserPermission {
+	if !ChangePermissionVerify(changedUser.GroupId, operatorUser.GroupId, 0, 0) {
 		return common.NewError(common.ERROR_AUTH_NOT_PERMISSION)
 	}
 	// 数据库执行更改
@@ -106,13 +100,7 @@ func ChangeGroupInfo(uid uint64, groupID uint64, changedInfo Group) error {
 		// 此用户不存在
 		return common.NewError(common.ERROR_AUTH_UID_NOT_EXIST)
 	}
-	userPermissionStr := redis.GetRedisKey("groups_permission_" + strconv.FormatUint(user.GroupId, 10))
-	groupPermissionStr := redis.GetRedisKey("groups_permission_" + strconv.FormatUint(groupID, 10))
-	userPermission, _ := strconv.ParseInt(userPermissionStr.(string), 10, 64)
-	groupPermission, _ := strconv.ParseInt(groupPermissionStr.(string), 10, 64)
-	// 鉴定操作者有网站修改权限
-	isok := (userPermission & (1 << PERMISSION_ADMIN_WRITE)) | (userPermission & (1 << PERMISSION_MAXIMUM))
-	if isok <= 0 || groupPermission >= userPermission {
+	if !ChangePermissionVerify(groupID, user.GroupId, 0, 0) {
 		return common.NewError(common.ERROR_AUTH_NOT_PERMISSION)
 	}
 	// 数据库更改
@@ -140,42 +128,6 @@ func GetGroupInfo(groupID uint64) (groupDetail Group, err error) {
 	return
 }
 
-func GetAllGroup() (groups []Group) {
-	DB.Table("groups").Find(&groups)
-	return
-}
-
-func DelGroup(uid, groupID uint64) error {
-	// 判断是否有权限删除
-	var user User
-	err := DB.Table("users").Where("uid = ?", uid).Find(&user).Error
-	if err != nil || user.Uid == 0 {
-		// 此用户不存在
-		return common.NewError(common.ERROR_AUTH_UID_NOT_EXIST)
-	}
-	userPermissionStr := redis.GetRedisKey("groups_permission_" + strconv.FormatUint(user.GroupId, 10))
-	groupPermissionStr := redis.GetRedisKey("groups_permission_" + strconv.FormatUint(groupID, 10))
-	userPermission, _ := strconv.ParseInt(userPermissionStr.(string), 10, 64)
-	groupPermission, _ := strconv.ParseInt(groupPermissionStr.(string), 10, 64)
-	// 鉴定操作者有网站修改权限
-	isok := (userPermission & (1 << PERMISSION_ADMIN_WRITE)) | (userPermission & (1 << PERMISSION_MAXIMUM))
-	if isok <= 0 || groupPermission >= userPermission {
-		return common.NewError(common.ERROR_AUTH_NOT_PERMISSION)
-	}
-	// 将该用户组的全部用户移动为其他用户组
-	// 默认用户组为注册用户，id为2
-	// 当用户组变更时，他们的容量也跟着变化
-	groupIDStr := strconv.FormatUint(groupID, 10)
-	newGroupStorage := redis.GetRedisKey("groups_storage_" + groupIDStr)
-	DB.Table("users").Where("group_id = ?", groupID).Updates(User{GroupId: groupID, TotalStorage: newGroupStorage.(uint64)})
-	// 数据库删除，redis注销
-	DB.Table("groups").Delete("group_id = ?", groupID)
-	redis.DelRedisKey("groups_permission_" + groupIDStr)
-	redis.DelRedisKey("groups_name_" + groupIDStr)
-	redis.DelRedisKey("groups_storage_" + groupIDStr)
-	return nil
-}
-
 func PermissionVerify(uid uint64, permissionCode int) bool {
 	var user User
 	// 拿到用户的用户组ID
@@ -187,4 +139,38 @@ func PermissionVerify(uid uint64, permissionCode int) bool {
 	}
 	userPermission, _ := strconv.ParseInt(userPermissionStr.(string), 10, 64)
 	return userPermission&(1<<permissionCode) >= (1<<permissionCode) || userPermission&(1<<PERMISSION_MAXIMUM) >= (1<<PERMISSION_MAXIMUM)
+}
+
+//func ChangePermissionVerify(changedGroupId, operatorGroupId uint64) bool {
+//	operatorPermissionStr := redis.GetRedisKey("groups_permission_" + strconv.FormatUint(operatorGroupId, 10))
+//	changedPermissionStr := redis.GetRedisKey("groups_permission_" + strconv.FormatUint(changedGroupId, 10))
+//	operatprPermission, _ := strconv.ParseInt(operatorPermissionStr.(string), 10, 64)
+//	changedPermission, _ := strconv.ParseInt(changedPermissionStr.(string), 10, 64)
+//	isok := (operatprPermission & (1 << PERMISSION_ADMIN_WRITE)) | (operatprPermission & (1 << PERMISSION_MAXIMUM))
+//	return isok > 0 && changedPermission < operatprPermission
+//}
+
+func ChangePermissionVerify(changedGroupId, operatorGroupId, changedUid, operatorUid uint64) bool {
+	if changedGroupId == 0 {
+		var changed User
+		err := DB.Table("users").Where("uid = ?", changedUid).Find(&changed).Error
+		if err != nil || changed.Uid == 0 {
+			return false
+		}
+		changedGroupId = changed.GroupId
+	}
+	if operatorGroupId == 0 {
+		var operator User
+		err := DB.Table("users").Where("uid = ?", operatorUid).Find(&operator).Error
+		if err != nil || operator.Uid == 0 {
+			return false
+		}
+		operatorGroupId = operator.GroupId
+	}
+	changedPermissionStr := redis.GetRedisKey("groups_permission_" + strconv.FormatUint(changedGroupId, 10))
+	operatorPermissionStr := redis.GetRedisKey("groups_permission_" + strconv.FormatUint(operatorGroupId, 10))
+	operatprPermission, _ := strconv.ParseInt(operatorPermissionStr.(string), 10, 64)
+	changedPermission, _ := strconv.ParseInt(changedPermissionStr.(string), 10, 64)
+	isok := (operatprPermission & (1 << PERMISSION_ADMIN_WRITE)) | (operatprPermission & (1 << PERMISSION_MAXIMUM))
+	return isok > 0 && changedPermission < operatprPermission
 }

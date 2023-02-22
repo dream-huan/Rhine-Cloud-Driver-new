@@ -20,7 +20,7 @@ const recaptchaServerName = "https://recaptcha.net/recaptcha/api/siteverify"
 
 var privatekey string
 
-func Init(key string) {
+func InitRecaptcha(key string) {
 	privatekey = key
 }
 

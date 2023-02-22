@@ -52,4 +52,5 @@ func Init(cf config.Config) {
 	common.NewWorker(1)
 	redis.InitRedis(cf.RedisManager)
 	InitGroupPermission()
+	common.InitRecaptcha(cf.GoogleRecaptchaPrivateKey.Key)
 }

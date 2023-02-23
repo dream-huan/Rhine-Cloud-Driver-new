@@ -30,6 +30,8 @@ EXPOSE 8888
 
 COPY --from=0 /rhine-cloud-driver-builder/Rhine-Cloud-Driver-new/Rhine-Cloud-Driver ./
 
-VOLUME [ "/rhine-cloud-driver/uploads",  "/rhine-cloud-driver/avatar", "/rhine-cloud-driver/logs"]
+VOLUME [ "/rhine-cloud-driver/uploads",  "/rhine-cloud-driver/avatar", "/rhine-cloud-driver/logs", "rhine-cloud-driver/wait-for-it.sh"]
 
-ENTRYPOINT [ "./Rhine-Cloud-Driver" ]
+RUN chmod + x ./wait-for-it.sh
+
+ENTRYPOINT [ "./wait-for-it.sh","0.0.0.0:3306","--","./Rhine-Cloud-Driver" ]

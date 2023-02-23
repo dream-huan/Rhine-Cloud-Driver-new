@@ -4,11 +4,11 @@ server:
 
 redis:
   addr:
-  - "192.168.5.103:6379"
+  - "0.0.0.0:6379"
   pwd:
 
 mysql:
-  addr: "192.168.5.102:3306"
+  addr: "0.0.0.0:3306"
   user: "root"
   pwd: "Test123456"
   database: "project"

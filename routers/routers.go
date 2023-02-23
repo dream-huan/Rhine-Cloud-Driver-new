@@ -5,6 +5,7 @@ import (
 	"Rhine-Cloud-Driver/middleware"
 	model "Rhine-Cloud-Driver/models"
 	"Rhine-Cloud-Driver/routers/controllers"
+	"github.com/gin-contrib/cors"
 
 	"github.com/gin-gonic/gin"
 )
@@ -13,12 +14,12 @@ func InitRouter(cf config.Config) *gin.Engine {
 	router := gin.Default()
 	router.MaxMultipartMemory = 1024 << 20
 	// 跨域设置
-	//router.Use(cors.New(cors.Config{
-	//	AllowOrigins:     []string{"http://localhost:3000"},
-	//	AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"},
-	//	AllowHeaders:     []string{"Origin"},
-	//	AllowCredentials: true,
-	//}))
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:3000"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"},
+		AllowHeaders:     []string{"Origin"},
+		AllowCredentials: true,
+	}))
 	// r为总路由
 	r := router.Group("/api/v1")
 

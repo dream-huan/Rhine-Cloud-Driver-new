@@ -14,7 +14,7 @@ FROM alpine:latest
 
 WORKDIR /rhine-cloud-driver
 
-RUN apk add --no-cache tzdata ca-certificates && \
+RUN apk add --no-cache bash tzdata ca-certificates && \
     update-ca-certificates
 
 # 配置时区
@@ -30,8 +30,10 @@ EXPOSE 8888
 
 COPY --from=0 /rhine-cloud-driver-builder/Rhine-Cloud-Driver-new/Rhine-Cloud-Driver ./
 
-VOLUME [ "/rhine-cloud-driver/uploads",  "/rhine-cloud-driver/avatar", "/rhine-cloud-driver/logs", "rhine-cloud-driver/wait-for-it.sh"]
+COPY --from=0 /rhine-cloud-driver-builder/Rhine-Cloud-Driver-new/wait-for-it.sh ./
 
-RUN chmod + x ./wait-for-it.sh
+VOLUME [ "/rhine-cloud-driver/uploads",  "/rhine-cloud-driver/avatar", "/rhine-cloud-driver/logs"]
+
+RUN chmod +x ./wait-for-it.sh
 
 ENTRYPOINT [ "./wait-for-it.sh","0.0.0.0:3306","--","./Rhine-Cloud-Driver" ]

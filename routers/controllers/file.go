@@ -249,7 +249,7 @@ func DownloadFile(c *gin.Context) {
 	if err != nil {
 		makeResult(c, 200, err, nil)
 	}
-	c.Header("Content-Disposition", "attachment; filename="+fileName)
+	c.Header("Content-Disposition", "attachment; filename="+url.PathEscape(fileName))
 	c.File("./" + fileMD5)
 }
 

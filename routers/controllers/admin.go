@@ -258,7 +258,7 @@ func AdminUploadAvatar(c *gin.Context) {
 		makeResult(c, 200, common.NewError(common.ERROR_AUTH_NOT_PERMISSION), nil)
 		return
 	}
-	c.SaveUploadedFile(file, "./"+strconv.FormatUint(changedUid, 10))
+	c.SaveUploadedFile(file, "./avatar/"+strconv.FormatUint(changedUid, 10))
 	makeResult(c, 200, nil, nil)
 }
 

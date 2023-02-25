@@ -92,7 +92,7 @@ func Upload(c *gin.Context) {
 		return
 	}
 	if !isExist {
-		c.SaveUploadedFile(file, "./"+md5+"-"+fileIndex)
+		c.SaveUploadedFile(file, "./uploads/"+md5+"-"+fileIndex)
 	}
 	makeResult(c, 200, nil, nil)
 }
@@ -113,7 +113,7 @@ func MergeFileChunks(c *gin.Context) {
 		return
 	}
 	// 合并
-	fi, err := os.Stat("./" + md5 + "-" + strconv.FormatInt(chunkNum-1, 10))
+	fi, err := os.Stat("./uploads/" + md5 + "-" + strconv.FormatInt(chunkNum-1, 10))
 	if err != nil {
 		makeResult(c, 200, err, nil)
 		return
@@ -129,11 +129,11 @@ func MergeFileChunks(c *gin.Context) {
 		makeResult(c, 200, nil, nil)
 		return
 	}
-	allFile, _ := os.OpenFile("./"+md5, os.O_CREATE|os.O_WRONLY|os.O_APPEND, os.ModePerm)
+	allFile, _ := os.OpenFile("./uploads/"+md5, os.O_CREATE|os.O_WRONLY|os.O_APPEND, os.ModePerm)
 	for i := int64(0); i < chunkNum; i++ {
-		f, _ := os.OpenFile("./"+md5+"-"+strconv.FormatInt(i, 10), os.O_RDONLY, os.ModePerm)
+		f, _ := os.OpenFile("./uploads/"+md5+"-"+strconv.FormatInt(i, 10), os.O_RDONLY, os.ModePerm)
 		b, _ := ioutil.ReadAll(f)
-		common.RemoveFile("./" + md5 + "-" + strconv.FormatInt(i, 10))
+		common.RemoveFile("./uploads/" + md5 + "-" + strconv.FormatInt(i, 10))
 		allFile.Write(b)
 	}
 	makeResult(c, 200, nil, nil)
@@ -250,7 +250,7 @@ func DownloadFile(c *gin.Context) {
 		makeResult(c, 200, err, nil)
 	}
 	c.Header("Content-Disposition", "attachment; filename="+url.PathEscape(fileName))
-	c.File("./" + fileMD5)
+	c.File("./uploads/" + fileMD5)
 }
 
 type RemoveFilesRequest struct {

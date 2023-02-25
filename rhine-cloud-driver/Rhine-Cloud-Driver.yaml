@@ -20,7 +20,7 @@ jwtkey:
   key: "test"
 
 log:
-  log_path: ./rhine-cloud-driver/logs/access.log
+  log_path: ./logs/access.log
   max_age: 7
   max_backup: 7
   max_size: 100
@@ -29,5 +29,5 @@ log:
   level: -1   # -1: debug 0:info 2:warn 3:error 
   log_console: true  # false: only log to log file
 
-  ShareKeyHalt:
-    key: "123"
+ShareKeyHalt:
+  key: "123"

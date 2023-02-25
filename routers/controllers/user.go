@@ -162,14 +162,14 @@ func UploadAvatar(c *gin.Context) {
 	token, _ := c.Cookie("token")
 	_, uid := jwt.TokenGetUid(token)
 	file, _ := c.FormFile("avatar")
-	c.SaveUploadedFile(file, "./"+strconv.FormatUint(uid, 10))
+	c.SaveUploadedFile(file, "./avatar/"+strconv.FormatUint(uid, 10))
 	makeResult(c, 200, nil, nil)
 }
 
 func GetUserAvatar(c *gin.Context) {
 	id := c.Query("id")
 	c.Header("Content-Disposition", "attachment; filename=avatar.png")
-	c.File("./" + id)
+	c.File("./avatar/" + id)
 }
 
 //

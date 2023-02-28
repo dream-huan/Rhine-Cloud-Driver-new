@@ -22,6 +22,7 @@ type File struct {
 	Path        string `json:"path,omitempty" gorm:"index:idx_path"`
 	Uid         uint64 `json:"uid,omitempty"`
 	Valid       bool   `json:"valid,omitempty"`
+	Type        string `json:"type,omitempty" gorm:"index:idx_type;size:6"`
 }
 
 var invalidChar = map[string]bool{
@@ -114,7 +115,22 @@ func CheckPathValid(uid uint64, path, previousPath string) (bool, uint64) {
 	return true, file.FileID
 }
 
-func BuildFileSystem(uid uint64, path string, limit, offset int) (count int64, dirFileID uint64, files []File, err error) {
+func BuildFileSystem(uid uint64, path string, limit, offset int, filterKey string, filterType []string) (count int64, dirFileID uint64, files []File, err error) {
+	if filterKey != "" || len(filterType) != 0 {
+		if filterKey != "" && len(filterType) != 0 {
+			filterKey = "%" + filterKey + "%"
+			DB.Table("files").Where("file_name like ? and type in ? and uid = ? and valid = true", filterKey, filterType, uid).Find(&files)
+			count = int64(len(files))
+		} else if filterKey != "" {
+			filterKey = "%" + filterKey + "%"
+			DB.Table("files").Where("file_name like ? and uid = ? and valid = true", filterKey, uid).Find(&files)
+			count = int64(len(files))
+		} else {
+			DB.Table("files").Where("type in ? and uid = ? and valid = true", filterType, uid).Find(&files)
+			count = int64(len(files))
+		}
+		return
+	}
 	err = nil
 	// 判断路径结果是否合法
 	isValid, fileID := CheckPathValid(uid, path, "")
@@ -127,9 +143,10 @@ func BuildFileSystem(uid uint64, path string, limit, offset int) (count int64, d
 		return 0, 0, nil, common.NewError(common.ERROR_FILE_COUNT_EXCEED_LIMIT)
 	}
 	dirFileID = fileID
-	DB.Table("files").Where("parent_id = ? and valid = true", fileID).Count(&count)
+	//DB.Table("files").Where("parent_id = ? and valid = true", fileID).Count(&count)
 	//DB.Table("files").Where("parent_id = ? and valid = true", fileID).Offset(offset).Limit(limit).Find(&files)
 	DB.Table("files").Where("parent_id = ? and valid = true", fileID).Find(&files)
+	count = int64(len(files))
 	return
 }
 
@@ -258,6 +275,14 @@ func AddFile(uid uint64, md5 string, fileName string, fileSize, parentID uint64,
 		tx.Rollback()
 		return common.NewError(common.ERROR_FILE_SAME_NAME)
 	}
+	tempSlice := strings.Split(fileName, ".")
+	fileType := ""
+	if len(tempSlice) > 0 {
+		fileType = tempSlice[len(tempSlice)-1]
+		if len(fileType) > 6 {
+			fileType = ""
+		}
+	}
 	err = tx.Table("files").Create(&File{
 		Uid:         uid,
 		MD5:         md5,
@@ -269,6 +294,7 @@ func AddFile(uid uint64, md5 string, fileName string, fileSize, parentID uint64,
 		IsDir:       false,
 		IsOrigin:    isOrigin,
 		Path:        fileDir.Path + fileDir.FileName + "/",
+		Type:        fileType,
 	}).Error
 	if err != nil {
 		tx.Rollback()

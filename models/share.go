@@ -146,6 +146,7 @@ func TransferFiles(uid, shareID uint64, moveFileList []uint64, targetDirID uint6
 			IsOrigin:    false,
 			MD5:         thisFile.MD5,
 			Path:        targetDir.Path + targetDir.FileName + "/",
+			Type:        thisFile.Type,
 		}
 		tx.Table("files").Create(&newFile)
 		if thisFile.IsDir == true {
@@ -166,6 +167,7 @@ func TransferFiles(uid, shareID uint64, moveFileList []uint64, targetDirID uint6
 					IsOrigin:    false,
 					MD5:         subFiles[i].MD5,
 					Path:        strings.Replace(subFiles[i].Path, thisFile.Path, newFile.Path, 1),
+					Type:        subFiles[i].Type,
 				}
 				tx.Table("files").Create(&newSubFile)
 				if subFiles[i].IsDir == true {

@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"Rhine-Cloud-Driver/common"
 	"Rhine-Cloud-Driver/logic/jwt"
 	model "Rhine-Cloud-Driver/models"
 	"github.com/gin-gonic/gin"
@@ -40,10 +39,10 @@ func UserLogin(c *gin.Context) {
 		return
 	}
 	// 先验证recaptcha是否通过
-	if isok := common.VerifyToken(data.RecaptchaToken); isok != true {
-		makeResult(c, 200, common.NewError(common.ERROR_COMMON_RECAPTCHA_VERIFICATION), nil)
-		return
-	}
+	//if isok := common.VerifyToken(data.RecaptchaToken); isok != true {
+	//	makeResult(c, 200, common.NewError(common.ERROR_COMMON_RECAPTCHA_VERIFICATION), nil)
+	//	return
+	//}
 	newUser := model.User{}
 	var uid uint64
 	if len(strings.Split(data.Uid, "@")) > 1 {
@@ -70,10 +69,10 @@ func UserRegister(c *gin.Context) {
 		return
 	}
 	// 先验证recaptcha是否通过
-	if isok := common.VerifyToken(data.RecaptchaToken); isok != true {
-		makeResult(c, 200, common.NewError(common.ERROR_COMMON_RECAPTCHA_VERIFICATION), nil)
-		return
-	}
+	//if isok := common.VerifyToken(data.RecaptchaToken); isok != true {
+	//	makeResult(c, 200, common.NewError(common.ERROR_COMMON_RECAPTCHA_VERIFICATION), nil)
+	//	return
+	//}
 
 	newUser := model.User{}
 	newUser.Name = data.Name

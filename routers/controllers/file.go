@@ -14,9 +14,11 @@ import (
 )
 
 type GetFileSystemRequest struct {
-	Path   string `json:"path"`
-	Offset int    `json:"offset"`
-	Limit  int    `json:"limit"`
+	Path       string   `json:"path"`
+	Offset     int      `json:"offset"`
+	Limit      int      `json:"limit"`
+	FilterKey  string   `json:"filter_key"`
+	FilterType []string `json:"filter_type"`
 }
 
 type GetFileSystemResponse struct {
@@ -44,7 +46,7 @@ func GetMyFiles(c *gin.Context) {
 		return
 	}
 	path, _ := url.QueryUnescape(data.Path)
-	count, dirFileID, originFiles, err := model.BuildFileSystem(uid, path, data.Limit, data.Offset)
+	count, dirFileID, originFiles, err := model.BuildFileSystem(uid, path, data.Limit, data.Offset, data.FilterKey, data.FilterType)
 	if err != nil {
 		makeResult(c, 200, err, nil)
 		return

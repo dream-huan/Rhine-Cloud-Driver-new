@@ -496,3 +496,35 @@ func GetFileInfo(fileID uint64, info string) (interface{}, error) {
 	}
 	return nil, nil
 }
+
+func ReNameFile(fileId, uid uint64, newName string) error {
+	// 检验文件夹名称是否非法
+	if newName == "" {
+		return common.NewError(common.ERROR_FILE_NAME_INVALID)
+	}
+	matched, err := regexp.MatchString("[\\/+?:*<>!|]", newName)
+	if err != nil || matched == true {
+		return common.NewError(common.ERROR_FILE_NAME_INVALID)
+	}
+	// 判断此文件是否属于操作者
+	var file File
+	err = DB.Table("files").Where("file_id = ? and valid = true", fileId).Find(&file).Error
+	if err != nil || file.FileID == 0 {
+		// 文件不存在
+		return common.NewError(common.ERROR_FILE_NOT_EXISTS)
+	}
+	if file.Uid != uid {
+		// 无权操作
+		return common.NewError(common.ERROR_AUTH_NOT_PERMISSION)
+	}
+	tempSlice := strings.Split(newName, ".")
+	fileType := ""
+	if len(tempSlice) > 0 {
+		fileType = tempSlice[len(tempSlice)-1]
+		if len(fileType) > 6 {
+			fileType = ""
+		}
+	}
+	DB.Table("files").Where("file_id = ?", fileId).Updates(&File{FileName: newName, Type: fileType})
+	return nil
+}

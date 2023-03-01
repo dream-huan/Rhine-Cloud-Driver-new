@@ -274,3 +274,20 @@ func RemoveFiles(c *gin.Context) {
 	}
 	makeResult(c, 200, nil, nil)
 }
+
+type ReNameFileRequest struct {
+	FileId  uint64 `json:"file_id"`
+	NewName string `json:"new_name"`
+}
+
+func ReNameFile(c *gin.Context) {
+	token, _ := c.Cookie("token")
+	_, uid := jwt.TokenGetUid(token)
+	var data ReNameFileRequest
+	if err := c.ShouldBindJSON(&data); err != nil {
+		makeResult(c, 200, err, nil)
+		return
+	}
+	err := model.ReNameFile(data.FileId, uid, data.NewName)
+	makeResult(c, 200, err, nil)
+}

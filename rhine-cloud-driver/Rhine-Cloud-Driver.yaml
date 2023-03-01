@@ -14,7 +14,7 @@ mysql:
   database: "project"
 
 googlerecaptchaprivatekey:
-  key: "6LdY-6MkAAAAACATBMOtAlQupX7iv5UW9yivs84a"
+  key: "6Lf7e74kAAAAAGq4qydOtqMb8BnTkI1b_RZoiOGR"
 
 jwtkey:
   key: "test"

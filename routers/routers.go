@@ -45,6 +45,7 @@ func InitRouter(cf config.Config) *gin.Engine {
 		fileRouter.POST("move_files", controllers.MoveFiles)
 		fileRouter.POST("get_download_key", controllers.GetDownloadKey)
 		fileRouter.POST("remove_files", controllers.RemoveFiles)
+		fileRouter.POST("rename_file", controllers.ReNameFile)
 
 		shareRouter := r.Group("")
 		shareRouter.Use(middleware.PermissionVerify(model.PERMISSION_SHARE))

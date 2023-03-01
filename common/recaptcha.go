@@ -11,12 +11,14 @@ import (
 
 // google验证码回调结构体
 type recaptchaToken struct {
-	Success      bool   `json:"success"`
-	Challenge_ts string `json:"challenge_ts"`
-	Hostname     string `json:"hostname"`
+	Success      bool    `json:"success"`
+	Challenge_ts string  `json:"challenge_ts"`
+	Hostname     string  `json:"hostname"`
+	Score        float64 `json:"score"`
+	Action       string  `json:"action"`
 }
 
-const recaptchaServerName = "https://recaptcha.net/recaptcha/api/siteverify"
+const recaptchaServerName = "https://recaptcha.google.cn/recaptcha/api/siteverify"
 
 var privatekey string
 
@@ -40,5 +42,5 @@ func VerifyToken(token string) bool {
 	if err != nil {
 		log.Logger.Error("对recaptcha结果处理错误:%#v", zap.Error(err))
 	}
-	return result.Success
+	return result.Score >= 0.6
 }

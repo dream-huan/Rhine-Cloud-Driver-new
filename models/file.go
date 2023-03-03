@@ -115,7 +115,30 @@ func CheckPathValid(uid uint64, path, previousPath string) (bool, uint64) {
 	return true, file.FileID
 }
 
-func BuildFileSystem(uid uint64, path string, limit, offset int, filterKey string, filterType []string) (count int64, dirFileID uint64, files []File, err error) {
+func BuildFileSystem(uid uint64, path string, targetDirId uint64, limit, offset int, filterKey string, filterType []string) (count int64, dirFileID uint64, files []File, filePath string, err error) {
+	if targetDirId != 0 {
+		// 验证此id是否所属操作者本人
+		DB.Table("files").Where("parent_id = ? and valid = true", targetDirId).Find(&files)
+		if len(files) == 0 {
+			// 要额外验证一次
+			DB.Table("files").Where("file_id = ? and valid = true", targetDirId).Find(&files)
+			if len(files) == 0 {
+				// 文件夹不存在，非法操作
+				return 0, 0, nil, "", common.NewError(common.ERROR_FILE_NOT_EXISTS)
+			}
+		}
+		if files[0].Uid != uid {
+			// 非法操作
+			return 0, 0, nil, "", common.NewError(common.ERROR_FILE_INVALID)
+		}
+		if files[0].FileID == targetDirId {
+			filePath = files[0].Path + files[0].FileName + "/"
+			files = []File{}
+		} else {
+			filePath = files[0].Path
+		}
+		return int64(len(files)), targetDirId, files, filePath, nil
+	}
 	if filterKey != "" || len(filterType) != 0 {
 		if filterKey != "" && len(filterType) != 0 {
 			filterKey = "%" + filterKey + "%"
@@ -135,12 +158,12 @@ func BuildFileSystem(uid uint64, path string, limit, offset int, filterKey strin
 	// 判断路径结果是否合法
 	isValid, fileID := CheckPathValid(uid, path, "")
 	if isValid == false {
-		return 0, 0, nil, common.NewError(common.ERROR_FILE_PATH_INVALID)
+		return 0, 0, nil, "", common.NewError(common.ERROR_FILE_PATH_INVALID)
 	}
 	// 分页查询，每次查询最多50条
 	// 结果存储到redis中
 	if limit > 50 || offset < 0 {
-		return 0, 0, nil, common.NewError(common.ERROR_FILE_COUNT_EXCEED_LIMIT)
+		return 0, 0, nil, "", common.NewError(common.ERROR_FILE_COUNT_EXCEED_LIMIT)
 	}
 	dirFileID = fileID
 	//DB.Table("files").Where("parent_id = ? and valid = true", fileID).Count(&count)

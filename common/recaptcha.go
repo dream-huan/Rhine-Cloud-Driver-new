@@ -27,6 +27,7 @@ func InitRecaptcha(key string) {
 }
 
 func VerifyToken(token string) bool {
+	log.Logger.Info("recaptcha发送报文", zap.Any("url", recaptchaServerName), zap.Any("secret", privatekey), zap.Any("response", token))
 	resp, err := http.PostForm(recaptchaServerName,
 		url.Values{"secret": {privatekey}, "response": {token}})
 	if err != nil {
@@ -37,10 +38,12 @@ func VerifyToken(token string) bool {
 	if err != nil {
 		log.Logger.Error("ioutil的read方法错误:%#v", zap.Error(err))
 	}
+	log.Logger.Info("recaptcha返回报文", zap.Any("body", resp.Body))
 	var result recaptchaToken
 	err = json.Unmarshal(body, &result)
 	if err != nil {
 		log.Logger.Error("对recaptcha结果处理错误:%#v", zap.Error(err))
 	}
+	log.Logger.Info("recaptcha返回结果", zap.Any("result", result))
 	return result.Score >= 0.6
 }

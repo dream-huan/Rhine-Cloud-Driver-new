@@ -3,8 +3,10 @@ package controllers
 import (
 	"Rhine-Cloud-Driver/common"
 	"Rhine-Cloud-Driver/logic/jwt"
+	"Rhine-Cloud-Driver/logic/log"
 	model "Rhine-Cloud-Driver/models"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 	"strconv"
 	"strings"
 )
@@ -39,6 +41,7 @@ func UserLogin(c *gin.Context) {
 		makeResult(c, 200, err, nil)
 		return
 	}
+	log.Logger.Info("用户登录：", zap.Any("data", data))
 	// 先验证recaptcha是否通过
 	if isok := common.VerifyToken(data.RecaptchaToken); isok != true {
 		makeResult(c, 200, common.NewError(common.ERROR_COMMON_RECAPTCHA_VERIFICATION), nil)

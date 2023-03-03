@@ -27,7 +27,7 @@ func CheckSharePathValid(path string, uid, fileID uint64) ([]File, error) {
 		path = path + "/"
 	}
 	shareFile := File{}
-	err := DB.Table("files").Where("file_id=?", fileID).Find(&shareFile).Error
+	err := DB.Table("files").Where("file_id = ?", fileID).Find(&shareFile).Error
 	// 分享的文件不存在
 	if err != nil {
 		return nil, common.NewError(common.ERROR_SHARE_NOT_EXIST)
@@ -42,7 +42,7 @@ func CheckSharePathValid(path string, uid, fileID uint64) ([]File, error) {
 			return nil, common.NewError(common.ERROR_FILE_PATH_INVALID)
 		}
 		var files []File
-		DB.Table("files").Where("parent_id=?", fileID).Find(&files)
+		DB.Table("files").Where("parent_id = ? and valid = true", fileID).Find(&files)
 		return files, nil
 	}
 }

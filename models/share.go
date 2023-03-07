@@ -173,19 +173,19 @@ func TransferFiles(uid, shareID uint64, moveFileList []uint64, targetDirID uint6
 				if subFiles[i].IsDir == true {
 					parentMap[subFiles[i].FileID] = newSubFile.FileID
 				} else {
+					allFilesStorage += subFiles[i].FileStorage
 					if user.UsedStorage+allFilesStorage > user.TotalStorage {
 						tx.Rollback()
 						return common.NewError(common.ERROR_USER_STORAGE_EXCEED)
 					}
-					allFilesStorage += subFiles[i].FileStorage
 				}
 			}
 		} else {
+			allFilesStorage += newFile.FileStorage
 			if user.UsedStorage+allFilesStorage > user.TotalStorage {
 				tx.Rollback()
 				return common.NewError(common.ERROR_USER_STORAGE_EXCEED)
 			}
-			allFilesStorage += newFile.FileStorage
 		}
 	}
 	// 容量增加

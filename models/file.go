@@ -20,6 +20,7 @@ type File struct {
 	MD5         string `json:"md5,omitempty" gorm:"index:idx_md5"`
 	ParentID    uint64 `json:"parent_id,omitempty" gorm:"index:idx_parent_id"`
 	Path        string `json:"path,omitempty" gorm:"index:idx_path"`
+	QuickAccess bool   `json:"quick_access"`
 	Uid         uint64 `json:"uid,omitempty"`
 	Valid       bool   `json:"valid,omitempty"`
 	Type        string `json:"type,omitempty" gorm:"index:idx_type;size:6"`
@@ -540,6 +541,12 @@ func ReNameFile(fileId, uid uint64, newName string) error {
 		// 无权操作
 		return common.NewError(common.ERROR_AUTH_NOT_PERMISSION)
 	}
+	// 判断是否有同名文件
+	var count int64
+	err = DB.Table("files").Where("file_name = ? and parent_id = ?", newName, file.ParentID).Count(&count).Error
+	if count > 0 {
+		return common.NewError(common.ERROR_FILE_SAME_NAME)
+	}
 	tempSlice := strings.Split(newName, ".")
 	fileType := ""
 	if len(tempSlice) > 0 {
@@ -550,4 +557,28 @@ func ReNameFile(fileId, uid uint64, newName string) error {
 	}
 	DB.Table("files").Where("file_id = ?", fileId).Updates(&File{FileName: newName, Type: fileType})
 	return nil
+}
+
+func GetThumbnails(uid uint64, startDate string, endDate string) []File {
+	if startDate != "" {
+
+	}
+	if endDate != "" {
+
+	}
+	// 从uid拿到图片类相关文件
+	var files []File
+	DB.Table("files").Where("uid = ? and valid = true and ( type = 'png' or type = 'jpg' or type = 'jpeg' )", uid).Find(&files)
+	return files
+}
+
+func GetThumbnail(uid, fileId uint64) (string, error) {
+	// 权限校验
+	// 此文件是否属于该用户
+	var file File
+	DB.Table("files").Where("file_id = ? and valid = true", fileId).Find(&file)
+	if file.FileID == 0 || file.Uid != uid {
+		return "", common.NewError(common.ERROR_AUTH_NOT_PERMISSION)
+	}
+	return file.MD5, nil
 }

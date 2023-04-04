@@ -46,6 +46,8 @@ func InitRouter(cf config.Config) *gin.Engine {
 		fileRouter.POST("get_download_key", controllers.GetDownloadKey)
 		fileRouter.POST("remove_files", controllers.RemoveFiles)
 		fileRouter.POST("rename_file", controllers.ReNameFile)
+		fileRouter.POST("get_thumbnails", controllers.GetThumbnails)
+		fileRouter.GET("get_thumbnail", controllers.GetThumbnail)
 
 		shareRouter := r.Group("")
 		shareRouter.Use(middleware.PermissionVerify(model.PERMISSION_SHARE))

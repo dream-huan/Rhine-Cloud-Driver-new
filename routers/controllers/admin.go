@@ -167,6 +167,7 @@ func GetAllFile(c *gin.Context) {
 	}
 	if data.Limit > 50 || data.Limit < 0 || data.Offset < 0 {
 		makeResult(c, 200, common.NewError(common.ERROR_PARA_INVALID), nil)
+		return
 	}
 	count, fileList := model.GetAllFile(data.Offset, data.Limit)
 	files := make([]FileSystem, len(fileList))

@@ -5,6 +5,7 @@ import (
 	"Rhine-Cloud-Driver/logic/jwt"
 	"Rhine-Cloud-Driver/logic/log"
 	model "Rhine-Cloud-Driver/models"
+	"github.com/disintegration/imaging"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"io/ioutil"
@@ -293,4 +294,69 @@ func ReNameFile(c *gin.Context) {
 	}
 	err := model.ReNameFile(data.FileId, uid, data.NewName)
 	makeResult(c, 200, err, nil)
+}
+
+type GetThumbnailsRequest struct {
+	StartDate string `json:"start_date"`
+	EndDate   string `json:"end_date"`
+}
+
+type ThumbnailTimeLine struct {
+	Date  string       `json:"date"`
+	Files []model.File `json:"files"`
+}
+
+type GetThumbnailsResponse struct {
+	Data []ThumbnailTimeLine `json:"data"`
+}
+
+func GetThumbnails(c *gin.Context) {
+	token, _ := c.Cookie("token")
+	_, uid := jwt.TokenGetUid(token)
+	var data GetThumbnailsRequest
+	if err := c.ShouldBindJSON(&data); err != nil {
+		makeResult(c, 200, err, nil)
+		return
+	}
+	files := model.GetThumbnails(uid, data.StartDate, data.EndDate)
+	// 日期处理
+	//timeLine := make(map[string][]model.File)
+	lastDate := ""
+	resp := GetThumbnailsResponse{}
+	for i := len(files) - 1; i >= 0; i-- {
+		// 获取日期
+		thisTime := files[i].CreateTime[0:10]
+		if lastDate == "" || thisTime != lastDate {
+			// 另起一个日期
+			var newTimeLine ThumbnailTimeLine
+			newTimeLine.Date = thisTime
+			newTimeLine.Files = append(newTimeLine.Files, files[i])
+			resp.Data = append(resp.Data, newTimeLine)
+		} else {
+			resp.Data[len(resp.Data)-1].Files = append(resp.Data[len(resp.Data)-1].Files, files[i])
+		}
+		lastDate = thisTime
+	}
+	makeResult(c, 200, nil, resp)
+}
+
+func GetThumbnail(c *gin.Context) {
+	fileId, _ := strconv.ParseUint(c.Query("file_id"), 10, 64)
+	token, _ := c.Cookie("token")
+	_, uid := jwt.TokenGetUid(token)
+	md5, err := model.GetThumbnail(uid, fileId)
+	if err != nil {
+		makeResult(c, 200, err, nil)
+		return
+	}
+	// 判断是否已有，已有就不再生成
+	_, err = os.Stat("upload/thumbnail_" + md5 + ".jpg")
+	if err == nil {
+		c.File("uploads/thumbnail_" + md5 + ".jpg")
+		return
+	}
+	img, err := imaging.Open("uploads/" + md5)
+	img1 := imaging.Resize(img, 200, 0, imaging.Lanczos)
+	err = imaging.Save(img1, "uploads/thumbnail_"+md5+".jpg")
+	c.File("uploads/thumbnail_" + md5 + ".jpg")
 }

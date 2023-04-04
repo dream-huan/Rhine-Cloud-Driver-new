@@ -20,10 +20,10 @@ type File struct {
 	MD5         string `json:"md5,omitempty" gorm:"index:idx_md5"`
 	ParentID    uint64 `json:"parent_id,omitempty" gorm:"index:idx_parent_id"`
 	Path        string `json:"path,omitempty" gorm:"index:idx_path"`
-	QuickAccess bool   `json:"quick_access"`
-	Uid         uint64 `json:"uid,omitempty"`
-	Valid       bool   `json:"valid,omitempty"`
-	Type        string `json:"type,omitempty" gorm:"index:idx_type;size:6"`
+	//QuickAccess bool   `json:"quick_access"`
+	Uid   uint64 `json:"uid,omitempty"`
+	Valid bool   `json:"valid,omitempty"`
+	Type  string `json:"type,omitempty" gorm:"index:idx_type;size:6"`
 }
 
 var invalidChar = map[string]bool{

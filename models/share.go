@@ -50,7 +50,7 @@ func CheckSharePathValid(path string, uid, fileID uint64) ([]File, error) {
 func GetShareDetail(shareID uint64, password string, path string) (string, uint64, []File, error) {
 	var ShareDetail Share
 	err := DB.Table("shares").Where("share_id=? and valid = true", shareID).Find(&ShareDetail).Error
-	if err != nil || (ShareDetail.ExpireTime != "-" && time.Now().Format("2006-01-02 15:04:05") >= ShareDetail.ExpireTime) {
+	if err != nil || ShareDetail.ShareID == 0 || (ShareDetail.ExpireTime != "-" && time.Now().Format("2006-01-02 15:04:05") >= ShareDetail.ExpireTime) {
 		// 分享无效或已过期
 		return "", 0, nil, common.NewError(common.ERROR_SHARE_NOT_EXIST)
 	}

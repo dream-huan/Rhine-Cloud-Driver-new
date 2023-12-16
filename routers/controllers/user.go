@@ -64,6 +64,19 @@ func UserLogin(c *gin.Context) {
 	makeResult(c, 200, nil, responseData)
 }
 
+type CheckRegisterResponse struct {
+	OpenEnrollment bool `json:open_enrollment`
+}
+
+// CheckRegister 是否允许用户注册
+func CheckRegister(c *gin.Context) {
+	responseData := &CheckRegisterResponse{OpenEnrollment: true}
+	if model.GetSettingByName("register_open") == "0" {
+		responseData.OpenEnrollment = false
+	}
+	makeResult(c, 200, nil, responseData)
+}
+
 // UserRegister 用户注册
 func UserRegister(c *gin.Context) {
 	var data RegisterRequest

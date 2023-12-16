@@ -69,7 +69,8 @@ func AdminEditUserInfo(changedUid, operatorUid uint64, name, password, groupId, 
 	if groupId != "0" && groupId != "" {
 		// 判断指定的group_id是否存在
 		// 取redis
-		if redis.GetRedisKey("groups_name_"+groupId) == nil {
+		_, isExist := redis.GetRedisKey("groups_name_" + groupId)
+		if isExist == false {
 			return common.NewError(common.ERROR_GROUP_NOT_EXIST)
 		}
 		// 判定是否有权赋予这个groupId
@@ -95,8 +96,8 @@ func AdminGroupPermissionVerify(operatorUid uint64, groupPermission int64) error
 	// 取操作人group_id
 	var user User
 	err := DB.Table("users").Where("uid = ?", operatorUid).Find(&user).Error
-	userPermissionStr := redis.GetRedisKey("groups_permission_" + strconv.FormatUint(user.GroupId, 10))
-	if err != nil || user.Uid == 0 || userPermissionStr == nil {
+	userPermissionStr, isExist := redis.GetRedisKey("groups_permission_" + strconv.FormatUint(user.GroupId, 10))
+	if err != nil || user.Uid == 0 || isExist == false {
 		return common.NewError(common.ERROR_USER_NOT_EXIST)
 	}
 	userPermission, _ := strconv.ParseInt(userPermissionStr.(string), 10, 64)
@@ -173,7 +174,7 @@ func AdminDeleteGroup(uid, groupID uint64) error {
 	// 默认用户组为注册用户，id为2
 	// 当用户组变更时，他们的容量也跟着变化
 	groupIDStr := strconv.FormatUint(groupID, 10)
-	newGroupStorageStr := redis.GetRedisKey("groups_storage_2")
+	newGroupStorageStr, _ := redis.GetRedisKey("groups_storage_2")
 	newGroupStorage, _ := strconv.ParseUint(newGroupStorageStr.(string), 10, 64)
 	DB.Table("users").Where("group_id = ?", groupID).Updates(User{GroupId: 2, TotalStorage: newGroupStorage})
 	// 数据库删除，redis注销

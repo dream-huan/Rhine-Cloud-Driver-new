@@ -183,8 +183,10 @@ func UploadPrepare(md5, fileName string, chunkNum int64, uid, fileSize, targetDi
 	}
 	// 随机生成一个32位新的key，并将其作为UploadID
 	uploadID := common.RandStringRunes(32)
-	for redis.GetRedisKey(uploadID) != nil {
+	_, isExist := redis.GetRedisKey(uploadID)
+	for isExist != false {
 		uploadID = common.RandStringRunes(32)
+		_, isExist = redis.GetRedisKey(uploadID)
 	}
 	redis.SetRedisKey(uploadID, md5, time.Second*60*30)
 	var count int64
@@ -200,7 +202,7 @@ func UploadPrepare(md5, fileName string, chunkNum int64, uid, fileSize, targetDi
 	// 先判断是否存在该md5
 	chunksRedisKey := "file_md5_chunks_" + md5
 	chunkNumRedisKey := "file_md5_chunk_num_" + md5
-	if oldChunkNum := redis.GetRedisKey(chunkNumRedisKey); oldChunkNum != nil {
+	if oldChunkNum, isExist := redis.GetRedisKey(chunkNumRedisKey); isExist != false {
 		size, _ := strconv.ParseInt(oldChunkNum.(string), 10, 64)
 		chunks := make([]byte, size)
 		for i := int64(0); i < size; i++ {
@@ -226,13 +228,13 @@ func UploadPrepare(md5, fileName string, chunkNum int64, uid, fileSize, targetDi
 }
 
 func DealFileChunk(md5 string, fileIndex int64, uploadID string) (isExist bool, chunkNum int64, err error) {
-	if redis.GetRedisKey(uploadID) == nil {
+	if _, isExist := redis.GetRedisKey(uploadID); isExist == false {
 		return false, 0, common.NewError(common.ERROR_AUTH_UPLOADID_INVALID)
 	}
 	chunksRedisKey := "file_md5_chunks_" + md5
 	chunkNumRedisKey := "file_md5_chunk_num_" + md5
 	// 从redis中拿到这块的情况
-	if tempRedisValue := redis.GetRedisKey(chunkNumRedisKey); tempRedisValue == nil {
+	if tempRedisValue, isExist := redis.GetRedisKey(chunkNumRedisKey); isExist == false {
 		return false, chunkNum, common.NewError(common.ERROR_FILE_NOT_EXISTS)
 	} else {
 		chunkNum, _ = strconv.ParseInt(tempRedisValue.(string), 10, 64)
@@ -249,7 +251,7 @@ func DealFileChunk(md5 string, fileIndex int64, uploadID string) (isExist bool, 
 }
 
 func MergeFileChunks(md5, uploadID string) (int64, error) {
-	if redis.GetRedisKey(uploadID) == nil {
+	if _, isExist := redis.GetRedisKey(uploadID); isExist == false {
 		return 0, common.NewError(common.ERROR_AUTH_UPLOADID_INVALID)
 	}
 	// 查看数据库是否有该MD5
@@ -261,7 +263,7 @@ func MergeFileChunks(md5, uploadID string) (int64, error) {
 	chunksRedisKey := "file_md5_chunks_" + md5
 	chunkNumRedisKey := "file_md5_chunk_num_" + md5
 	var chunkNum int64
-	if tempRedisValue := redis.GetRedisKey(chunkNumRedisKey); tempRedisValue == nil {
+	if tempRedisValue, isExist := redis.GetRedisKey(chunkNumRedisKey); isExist == false {
 		return 0, common.NewError(common.ERROR_FILE_NOT_EXISTS)
 	} else {
 		chunkNum, _ = strconv.ParseInt(tempRedisValue.(string), 10, 64)
@@ -478,8 +480,8 @@ func GetDownloadKey(uid, fileID uint64, fileKey string) (downloadID string, err 
 
 func DownloadFile(key string, fileID uint64) (fileName, fileMD5 string, err error) {
 	err = nil
-	fileInfo := redis.GetRedisKey("download_key_" + key)
-	if fileInfo == nil {
+	fileInfo, isExist := redis.GetRedisKey("download_key_" + key)
+	if isExist == false {
 		// 链接无效或已过期
 		return "", "", common.NewError(common.ERROR_DOWNLOAD_KEY_INVALID)
 	}

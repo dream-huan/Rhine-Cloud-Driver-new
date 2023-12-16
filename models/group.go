@@ -133,8 +133,8 @@ func PermissionVerify(uid uint64, permissionCode int) bool {
 	// 拿到用户的用户组ID
 	DB.Table("users").Where("uid = ?", uid).Find(&user)
 	// 取得用户的权限
-	userPermissionStr := redis.GetRedisKey("groups_permission_" + strconv.FormatUint(user.GroupId, 10))
-	if userPermissionStr == nil {
+	userPermissionStr, isExist := redis.GetRedisKey("groups_permission_" + strconv.FormatUint(user.GroupId, 10))
+	if isExist == false {
 		return false
 	}
 	userPermission, _ := strconv.ParseInt(userPermissionStr.(string), 10, 64)
@@ -167,8 +167,8 @@ func ChangePermissionVerify(changedGroupId, operatorGroupId, changedUid, operato
 		}
 		operatorGroupId = operator.GroupId
 	}
-	changedPermissionStr := redis.GetRedisKey("groups_permission_" + strconv.FormatUint(changedGroupId, 10))
-	operatorPermissionStr := redis.GetRedisKey("groups_permission_" + strconv.FormatUint(operatorGroupId, 10))
+	changedPermissionStr, _ := redis.GetRedisKey("groups_permission_" + strconv.FormatUint(changedGroupId, 10))
+	operatorPermissionStr, _ := redis.GetRedisKey("groups_permission_" + strconv.FormatUint(operatorGroupId, 10))
 	operatprPermission, _ := strconv.ParseInt(operatorPermissionStr.(string), 10, 64)
 	changedPermission, _ := strconv.ParseInt(changedPermissionStr.(string), 10, 64)
 	isok := (operatprPermission & (1 << PERMISSION_ADMIN_WRITE)) | (operatprPermission & (1 << PERMISSION_MAXIMUM))

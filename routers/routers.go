@@ -24,6 +24,7 @@ func InitRouter(cf config.Config) *gin.Engine {
 	// 注册和登录路由
 	r.POST("login", controllers.UserLogin)
 	r.POST("register", controllers.UserRegister)
+	r.GET("check_register", controllers.CheckRegister)
 	r.POST("share_info", controllers.GetShareDetail)
 	r.GET("download/:key", controllers.DownloadFile)
 	r.POST("get_share_file", controllers.GetShareFile)

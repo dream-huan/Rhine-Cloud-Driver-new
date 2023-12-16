@@ -53,6 +53,9 @@ func HashDecode(hashValue string, minLen int) (uint64, error) {
 		return 0, NewError(ERROR_COMMON_TOOLS_HASH_DECODE_FAILED)
 	}
 	d, _ := h.DecodeWithError(hashValue)
+	if len(d) <= 0 {
+		return 0, NewError(ERROR_COMMON_TOOLS_HASH_DECODE_FAILED)
+	}
 	return uint64(d[0]), nil
 }
 

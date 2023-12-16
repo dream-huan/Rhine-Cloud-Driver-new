@@ -1,13 +1,12 @@
 package model
 
 import (
-	"Rhine-Cloud-Driver/logic/redis"
-	"database/sql"
-
 	"Rhine-Cloud-Driver/common"
 	"Rhine-Cloud-Driver/config"
 	"Rhine-Cloud-Driver/logic/jwt"
 	log "Rhine-Cloud-Driver/logic/log"
+	"Rhine-Cloud-Driver/logic/redis"
+	"database/sql"
 
 	_ "github.com/go-sql-driver/mysql"
 	"go.uber.org/zap"
@@ -39,7 +38,8 @@ func initMysql(cf config.MysqlConfig) {
 	db.SetMaxOpenConns(100)
 
 	// 自动建表+建立索引
-	DB.Set("gorm:table_options", "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4").AutoMigrate(&User{}, &Group{}, &File{}, &Share{})
+	DB.Set("gorm:table_options", "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4").AutoMigrate(&User{}, &Group{}, &File{}, &Share{}, &Setting{})
+	DB.Table("settings").Create(&Setting{Name: "register_open", Value: "0"})
 }
 
 func initJwt(cf config.JwtConfig) {

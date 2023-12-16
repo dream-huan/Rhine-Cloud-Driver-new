@@ -144,9 +144,9 @@ func (user *User) AddUser() error {
 	var userStorage interface{}
 	if user.GroupId == 0 {
 		user.GroupId = 2
-		userStorage = redis.GetRedisKey("groups_storage_" + strconv.FormatUint(user.GroupId, 10))
+		userStorage, _ = redis.GetRedisKey("groups_storage_" + strconv.FormatUint(user.GroupId, 10))
 	} else {
-		userStorage = redis.GetRedisKey("groups_storage_" + strconv.FormatUint(user.GroupId, 10))
+		userStorage, _ = redis.GetRedisKey("groups_storage_" + strconv.FormatUint(user.GroupId, 10))
 	}
 	user.TotalStorage, _ = strconv.ParseUint(userStorage.(string), 10, 64)
 	tx := DB.Session(&gorm.Session{})
@@ -185,9 +185,9 @@ func (user *User) GetUserDetail() {
 	if user.Email == "" {
 		return
 	}
-	groupName := redis.GetRedisKey("groups_name_" + strconv.FormatUint(user.GroupId, 10))
+	groupName, _ := redis.GetRedisKey("groups_name_" + strconv.FormatUint(user.GroupId, 10))
 	user.GroupName = groupName.(string)
-	groupPermission := redis.GetRedisKey("groups_permission_" + strconv.FormatUint(user.GroupId, 10))
+	groupPermission, _ := redis.GetRedisKey("groups_permission_" + strconv.FormatUint(user.GroupId, 10))
 	user.GroupPermission, _ = strconv.ParseUint(groupPermission.(string), 10, 64)
 }
 

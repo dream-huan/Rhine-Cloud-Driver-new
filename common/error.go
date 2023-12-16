@@ -22,6 +22,7 @@ const (
 const (
 	ERROR_DB_WRITE_FAILED = 200001
 	ERROR_DB_READ_FAILED  = 200002
+	ERROR_DB_NOT_DATA     = 200003
 )
 
 // jwt相关错误

@@ -30,7 +30,7 @@ func GetShareDetail(c *gin.Context) {
 	// 从shareKey还原出shareID
 	shareID, err := common.HashDecode(data.ShareKey, 4)
 	if err != nil {
-		makeResult(c, 200, common.NewError(common.ERROR_COMMON_TOOLS_HASH_DECODE_FAILED), nil)
+		makeResult(c, 200, common.NewError(common.ERROR_SHARE_NOT_EXIST), nil)
 		return
 	}
 	name, uid, originFiles, err := model.GetShareDetail(shareID, data.SharePassword, data.SharePath)

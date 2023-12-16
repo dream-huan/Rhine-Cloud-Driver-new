@@ -37,13 +37,13 @@ func SetRedisKey(key string, value interface{}, expiration time.Duration) bool {
 	return true
 }
 
-func GetRedisKey(key string) interface{} {
+func GetRedisKey(key string) (interface{}, bool) {
 	value, err := rdb.Get(ctx, key).Result()
 	if err != nil {
 		log.Logger.Error("redis cluster get key error:", zap.Error(err))
-		return nil
+		return nil, false
 	}
-	return value
+	return value, true
 }
 
 func DelRedisKey(key string) bool {

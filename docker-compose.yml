@@ -22,6 +22,9 @@ services:
       - MYSQL_ROOT_PASSWORD=Test123456
       - MYSQL_DATABASE=project
     network_mode: host
+    volumes:
+      - ./rhine-cloud-driver/mysql/conf.d:/etc/mysql/conf.d
+      - ./rhine-cloud-driver/mysql/data:/var/lib/mysql
   redis:
     container_name: redis
     image: redis:7.0

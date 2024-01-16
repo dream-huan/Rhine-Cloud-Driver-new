@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"net/url"
 	"os"
+	"sort"
 	"strconv"
 )
 
@@ -310,6 +311,12 @@ type GetThumbnailsResponse struct {
 	Data []ThumbnailTimeLine `json:"data"`
 }
 
+type Files []model.File
+
+func (a Files) Len() int           { return len(a) }
+func (a Files) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a Files) Less(i, j int) bool { return a[i].CreateTime < a[j].CreateTime }
+
 func GetThumbnails(c *gin.Context) {
 	token, _ := c.Cookie("token")
 	_, uid := jwt.TokenGetUid(token)
@@ -323,6 +330,7 @@ func GetThumbnails(c *gin.Context) {
 	//timeLine := make(map[string][]model.File)
 	lastDate := ""
 	resp := GetThumbnailsResponse{}
+	sort.Sort(Files(files))
 	for i := len(files) - 1; i >= 0; i-- {
 		// 获取日期
 		thisTime := files[i].CreateTime[0:10]

@@ -4,7 +4,7 @@ import (
 	"Rhine-Cloud-Driver/common"
 	"Rhine-Cloud-Driver/config"
 	"Rhine-Cloud-Driver/logic/jwt"
-	log "Rhine-Cloud-Driver/logic/log"
+	"Rhine-Cloud-Driver/logic/log"
 	"Rhine-Cloud-Driver/logic/redis"
 	"database/sql"
 

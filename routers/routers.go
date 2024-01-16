@@ -41,7 +41,7 @@ func InitRouter(cf config.Config) *gin.Engine {
 		fileRouter.POST("directory", controllers.GetMyFiles)
 		fileRouter.POST("mkdir", controllers.Mkdir)
 		fileRouter.POST("task_create", controllers.UploadTaskCreate)
-		fileRouter.POST("upload", controllers.Upload)
+		fileRouter.POST("upload", middleware.TrafficLimit(30), controllers.Upload)
 		fileRouter.POST("merge", controllers.MergeFileChunks)
 		fileRouter.POST("move_files", controllers.MoveFiles)
 		fileRouter.POST("get_download_key", controllers.GetDownloadKey)

@@ -149,6 +149,7 @@ func GetUserDetail(c *gin.Context) {
 			GroupPermission: user.GroupPermission,
 		},
 	}
+	//panic(common.NewError(common.ERROR_AUTH_NOT_PERMISSION))
 	makeResult(c, 200, nil, responseData)
 }
 

@@ -25,8 +25,9 @@ func InitConfig() {
 		fmt.Printf("%v", err)
 		panic(err)
 	}
-	log.Logger, err = log.NewLogger(cf.Log.LogPath, cf.Log.LogLevel, cf.Log.MaxSize, cf.Log.MaxBackup,
-		cf.Log.MaxAge, cf.Log.Compress, cf.Log.LogConsole, cf.Log.ServiceName)
+	//log.Logger, err = log.NewLogger(cf.Log.LogPath, cf.Log.LogLevel, cf.Log.MaxSize, cf.Log.MaxBackup,
+	//	cf.Log.MaxAge, cf.Log.Compress, cf.Log.LogConsole, cf.Log.ServiceName)
+	log.InitLog(&cf.Log)
 	if err != nil {
 		log.Logger.Error("Unmarshal yaml file error", zap.Error(err))
 	}

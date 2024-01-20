@@ -18,6 +18,7 @@ type File struct {
 	IsDir       bool   `json:"is_dir,omitempty"`
 	IsOrigin    bool   `json:"is_origin,omitempty"`
 	MD5         string `json:"md5,omitempty" gorm:"index:idx_md5"`
+	ExtraMD5    string `json:"extra_md5,omitempty" gorm:"index:idx_extra_md5"`
 	ParentID    uint64 `json:"parent_id,omitempty" gorm:"index:idx_parent_id"`
 	Path        string `json:"path,omitempty" gorm:"index:idx_path"`
 	//QuickAccess bool   `json:"quick_access"`
@@ -87,6 +88,10 @@ var invalidChar = map[string]bool{
 //	}
 //	return true, file.FileID
 //}
+
+func IsSameFile(md5A, extraMD5A, md5B, extraMD5B string, storageA, storageB uint64) bool {
+	return md5A == md5B && extraMD5A == extraMD5B && storageA == storageB
+}
 
 func CheckPathValid(uid uint64, path, previousPath string) (bool, uint64) {
 	if path[0] != '/' {
@@ -174,7 +179,7 @@ func BuildFileSystem(uid uint64, path string, targetDirId uint64, limit, offset 
 	return
 }
 
-func UploadPrepare(md5, fileName string, chunkNum int64, uid, fileSize, targetDirID uint64) (bool, string, string, error) {
+func UploadPrepare(md5, extraMD5, fileName string, chunkNum int64, uid, fileSize, targetDirID uint64) (bool, string, string, error) {
 	// 校验容量是否充足
 	var nowUser User
 	DB.Table("users").Where("uid=?", uid).Find(&nowUser)
@@ -183,21 +188,25 @@ func UploadPrepare(md5, fileName string, chunkNum int64, uid, fileSize, targetDi
 	}
 	// 随机生成一个32位新的key，并将其作为UploadID
 	uploadID := common.RandStringRunes(32)
-	_, isExist := redis.GetRedisKey(uploadID)
+	_, isExist := redis.GetRedisKey("upload_id_" + uploadID)
 	for isExist != false {
 		uploadID = common.RandStringRunes(32)
-		_, isExist = redis.GetRedisKey(uploadID)
+		_, isExist = redis.GetRedisKey("upload_id_" + uploadID)
 	}
-	redis.SetRedisKey(uploadID, md5, time.Second*60*30)
-	var count int64
-	DB.Table("files").Where("md5=?", md5).Count(&count)
-	if count > 0 {
-		// 存在AddFile即可
-		err := AddFile(uid, md5, fileName, fileSize, targetDirID, false)
-		if err != nil {
-			return true, "", "", err
+	redis.SetRedisKey("upload_id_"+uploadID, md5, time.Second*60*30)
+	var files []File
+	DB.Table("files").Where("md5=?", md5).Find(&files)
+	if len(files) > 0 {
+		for i := 0; i < len(files); i++ {
+			if IsSameFile(files[i].MD5, files[i].ExtraMD5, md5, extraMD5, files[i].FileStorage, fileSize) {
+				// 存在AddFile即可
+				err := AddFile(uid, md5, extraMD5, fileName, fileSize, targetDirID, false)
+				if err != nil {
+					return true, "", "", err
+				}
+				return true, "", "", nil
+			}
 		}
-		return true, "", "", nil
 	}
 	// 先判断是否存在该md5
 	chunksRedisKey := "file_md5_chunks_" + md5
@@ -228,7 +237,7 @@ func UploadPrepare(md5, fileName string, chunkNum int64, uid, fileSize, targetDi
 }
 
 func DealFileChunk(md5 string, fileIndex int64, uploadID string) (isExist bool, chunkNum int64, err error) {
-	if _, isExist := redis.GetRedisKey(uploadID); isExist == false {
+	if _, isExist := redis.GetRedisKey("upload_id_" + uploadID); isExist == false {
 		return false, 0, common.NewError(common.ERROR_AUTH_UPLOADID_INVALID)
 	}
 	chunksRedisKey := "file_md5_chunks_" + md5
@@ -251,7 +260,7 @@ func DealFileChunk(md5 string, fileIndex int64, uploadID string) (isExist bool, 
 }
 
 func MergeFileChunks(md5, uploadID string) (int64, error) {
-	if _, isExist := redis.GetRedisKey(uploadID); isExist == false {
+	if _, isExist := redis.GetRedisKey("upload_id_" + uploadID); isExist == false {
 		return 0, common.NewError(common.ERROR_AUTH_UPLOADID_INVALID)
 	}
 	// 查看数据库是否有该MD5
@@ -279,7 +288,7 @@ func MergeFileChunks(md5, uploadID string) (int64, error) {
 	return 0, common.NewError(common.ERROR_FILE_CHUNK_MISSING)
 }
 
-func AddFile(uid uint64, md5 string, fileName string, fileSize, parentID uint64, isOrigin bool) error {
+func AddFile(uid uint64, md5, extraMD5 string, fileName string, fileSize, parentID uint64, isOrigin bool) error {
 	// 校验容量是否充足
 	var nowUser User
 	DB.Table("users").Where("uid=?", uid).Find(&nowUser)
@@ -312,6 +321,7 @@ func AddFile(uid uint64, md5 string, fileName string, fileSize, parentID uint64,
 	err = tx.Table("files").Create(&File{
 		Uid:         uid,
 		MD5:         md5,
+		ExtraMD5:    extraMD5,
 		FileName:    fileName,
 		FileStorage: fileSize,
 		ParentID:    parentID,

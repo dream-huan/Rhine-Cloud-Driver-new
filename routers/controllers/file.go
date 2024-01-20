@@ -81,6 +81,11 @@ func Upload(c *gin.Context) {
 	//_, uid := jwt.TokenGetUid(token)
 	file, _ := c.FormFile("file")
 	form, _ := c.MultipartForm()
+	if form.Value["file_name"] == nil || form.Value["md5"] == nil || form.Value["file_name"] == nil || form.Value["extra_md5"] == nil || form.Value["upload_id"] == nil {
+		// 参数缺失
+		makeResult(c, 200, common.NewError(common.ERROR_PARA_ABSENT), nil)
+		return
+	}
 	//fileName := form.Value["file_name"][0]
 	fileIndex := form.Value["chunk_index"][0]
 	md5 := form.Value["md5"][0]
@@ -108,8 +113,14 @@ func MergeFileChunks(c *gin.Context) {
 	token, _ := c.Cookie("token")
 	_, uid := jwt.TokenGetUid(token)
 	form, _ := c.MultipartForm()
+	if form.Value["file_name"] == nil || form.Value["md5"] == nil || form.Value["file_name"] == nil || form.Value["extra_md5"] == nil || form.Value["upload_id"] == nil {
+		// 参数缺失
+		makeResult(c, 200, common.NewError(common.ERROR_PARA_ABSENT), nil)
+		return
+	}
 	fileName := form.Value["file_name"][0]
 	md5 := form.Value["md5"][0]
+	extraMD5 := form.Value["extra_md5"][0]
 	uploadID := form.Value["upload_id"][0]
 	parentID, err := strconv.ParseUint(form.Value["parent_id"][0], 10, 64)
 	// 若不存在，则合并
@@ -126,7 +137,7 @@ func MergeFileChunks(c *gin.Context) {
 		return
 	}
 	fileSize := (chunkNum-1)*(20*1024*1024) + fi.Size()
-	err = model.AddFile(uid, md5, fileName, uint64(fileSize), parentID, true)
+	err = model.AddFile(uid, md5, extraMD5, fileName, uint64(fileSize), parentID, true)
 	if err != nil {
 		makeResult(c, 200, err, nil)
 		return
@@ -149,6 +160,7 @@ func MergeFileChunks(c *gin.Context) {
 type UploadTaskRequest struct {
 	FileName     string `json:"file_name"`
 	FileMD5      string `json:"file_md5"`
+	FileExtraMD5 string `json:"file_extra_md5"`
 	FileChunkNum int64  `json:"file_chunk_num"`
 	FileSize     uint64 `json:"file_size"`
 	TargetDirId  uint64 `json:"target_dir_id"`
@@ -168,7 +180,7 @@ func UploadTaskCreate(c *gin.Context) {
 		makeResult(c, 200, err, nil)
 		return
 	}
-	isExists, chunks, uploadID, err := model.UploadPrepare(data.FileMD5, data.FileName, data.FileChunkNum, uid, data.FileSize, data.TargetDirId)
+	isExists, chunks, uploadID, err := model.UploadPrepare(data.FileMD5, data.FileExtraMD5, data.FileName, data.FileChunkNum, uid, data.FileSize, data.TargetDirId)
 	if err != nil {
 		makeResult(c, 200, err, nil)
 		return
@@ -354,17 +366,31 @@ func GetThumbnail(c *gin.Context) {
 	_, uid := jwt.TokenGetUid(token)
 	md5, err := model.GetThumbnail(uid, fileId)
 	if err != nil {
+		log.Logger.Error("failed to get thumbnail info from database", zap.Error(err))
 		makeResult(c, 200, err, nil)
 		return
 	}
 	// 判断是否已有，已有就不再生成
-	_, err = os.Stat("upload/thumbnail_" + md5 + ".jpg")
+	_, err = os.Stat("upload/thumbnail/" + md5 + ".jpg")
 	if err == nil {
-		c.File("uploads/thumbnail_" + md5 + ".jpg")
+		c.File("uploads/thumbnail/" + md5 + ".jpg")
 		return
 	}
 	img, err := imaging.Open("uploads/" + md5)
+	if err != nil {
+		// 一般是找不到原图像
+		log.Logger.Error("failed to generate thumbnail", zap.Error(err))
+		makeResult(c, 503, err, nil)
+		return
+	}
 	img1 := imaging.Resize(img, 200, 0, imaging.Lanczos)
-	err = imaging.Save(img1, "uploads/thumbnail_"+md5+".jpg")
-	c.File("uploads/thumbnail_" + md5 + ".jpg")
+	err = imaging.Save(img1, "uploads/thumbnail/"+md5+".jpg")
+
+	if err != nil {
+		// 无权限存储图像或存储空间不足
+		log.Logger.Error("failed to save thumbnail", zap.Error(err))
+		makeResult(c, 503, err, nil)
+		return
+	}
+	c.File("uploads/thumbnail/" + md5 + ".jpg")
 }

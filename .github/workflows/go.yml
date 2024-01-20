@@ -5,37 +5,37 @@ name: Go
 
 on:
   push:
-    branches-ignore: ["main"]
+    branches-ignore: [ "main" ]
   pull_request:
-    branches: 
-    - main
+    branches:
+      - main
 
 jobs:
 
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: Set up Go
-      uses: actions/setup-go@v3
-      with:
-        go-version: 1.18
-        
-    - name: Start Redis
-      uses: supercharge/redis-github-action@1.4.0
-      with:
-        redis-version: ${{ matrix.redis-version }}
-        
-    - name: Setup MySQL
-      uses: mirromutth/mysql-action@v1.1
-      with:
-        mysql version: '8.0'
-        mysql root password: 'Test123456'
-        mysql database: 'project'
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.18
 
-    - name: Build
-      run: go build -v ./...
+      - name: Start Redis
+        uses: supercharge/redis-github-action@1.4.0
+        with:
+          redis-version: ${{ matrix.redis-version }}
 
-    - name: Test
-      run: mkdir -vp rhine-cloud-driver && mkdir -vp rhine-cloud-driver/{uploads,avatar} && go test --cover ./...
+      - name: Setup MySQL
+        uses: mirromutth/mysql-action@v1.1
+        with:
+          mysql version: '8.0'
+          mysql root password: 'Test123456'
+          mysql database: 'project'
+
+      - name: Build
+        run: go build -v ./...
+
+      - name: Test
+        run: mkdir -vp rhine-cloud-driver && mkdir -vp rhine-cloud-driver/{uploads,avatar} && go test --cover ./...

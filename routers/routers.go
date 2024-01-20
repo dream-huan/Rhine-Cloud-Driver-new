@@ -18,6 +18,7 @@ func InitRouter(cf config.Config) *gin.Engine {
 	//	AllowHeaders:     []string{"Origin"},
 	//	AllowCredentials: true,
 	//}))
+	router.Use(middleware.Recovery())
 	// r为总路由
 	r := router.Group("/api/v1")
 

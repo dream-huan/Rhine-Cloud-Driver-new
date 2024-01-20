@@ -374,6 +374,7 @@ func GetThumbnail(c *gin.Context) {
 	_, err = os.Stat("./uploads/thumbnail/" + md5 + "." + pngType)
 	if err == nil {
 		c.File("./uploads/thumbnail/" + md5 + "." + pngType)
+
 		return
 	}
 	img, err := imaging.Open("./uploads/" + md5)

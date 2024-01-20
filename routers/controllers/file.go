@@ -364,16 +364,17 @@ func GetThumbnail(c *gin.Context) {
 	fileId, _ := strconv.ParseUint(c.Query("file_id"), 10, 64)
 	token, _ := c.Cookie("token")
 	_, uid := jwt.TokenGetUid(token)
-	md5, err := model.GetThumbnail(uid, fileId)
+	md5, pngType, err := model.GetThumbnail(uid, fileId)
 	if err != nil {
 		log.Logger.Error("failed to get thumbnail info from database", zap.Error(err))
 		makeResult(c, 200, err, nil)
 		return
 	}
 	// 判断是否已有，已有就不再生成
-	_, err = os.Stat("./uploads/thumbnail/" + md5 + ".jpg")
+	_, err = os.Stat("./uploads/thumbnail/" + md5 + "." + pngType)
 	if err == nil {
-		c.File("./uploads/thumbnail/" + md5 + ".jpg")
+		c.File("./uploads/thumbnail/" + md5 + "." + pngType)
+
 		return
 	}
 	img, err := imaging.Open("./uploads/" + md5)
@@ -383,13 +384,13 @@ func GetThumbnail(c *gin.Context) {
 		makeResult(c, 503, err, nil)
 		return
 	}
-	img1 := imaging.Resize(img, 200, 0, imaging.Lanczos)
-	err = imaging.Save(img1, "./uploads/thumbnail/"+md5+".jpg")
+	img1 := imaging.Resize(img, 200, 0, imaging.NearestNeighbor)
+	err = imaging.Save(img1, "./uploads/thumbnail/"+md5+"."+pngType)
 	if err != nil {
 		// 无权限存储图像或存储空间不足
 		log.Logger.Error("failed to save thumbnail", zap.Any("md5", md5), zap.Error(err))
 		makeResult(c, 503, err, nil)
 		return
 	}
-	c.File("./uploads/thumbnail/" + md5 + ".jpg")
+	c.File("./uploads/thumbnail/" + md5 + "." + pngType)
 }

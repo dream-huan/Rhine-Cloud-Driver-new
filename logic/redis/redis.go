@@ -4,7 +4,6 @@ import (
 	"Rhine-Cloud-Driver/config"
 	log "Rhine-Cloud-Driver/logic/log"
 	"context"
-	"fmt"
 	"github.com/go-redis/redis/v8"
 	"go.uber.org/zap"
 	"time"
@@ -16,7 +15,7 @@ var ctx = context.Background()
 
 func InitRedis(cf config.RedisConfig) {
 	ctx := context.Background()
-	fmt.Println(cf)
+	//fmt.Println(cf)
 	rdb = redis.NewClient(&redis.Options{
 		Addr:     cf.Address[0],
 		Password: cf.Password,
@@ -40,7 +39,7 @@ func SetRedisKey(key string, value interface{}, expiration time.Duration) bool {
 func GetRedisKey(key string) (interface{}, bool) {
 	value, err := rdb.Get(ctx, key).Result()
 	if err != nil {
-		log.Logger.Error("redis cluster get key error:", zap.Error(err))
+		//log.Logger.Error("redis cluster get key error:", zap.Error(err))
 		return nil, false
 	}
 	return value, true

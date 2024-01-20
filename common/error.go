@@ -93,6 +93,7 @@ const (
 // 传值相关
 const (
 	ERROR_PARA_INVALID = 1100001
+	ERROR_PARA_ABSENT  = 1100002
 )
 
 var errMap = map[int]string{

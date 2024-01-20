@@ -371,9 +371,8 @@ func GetThumbnail(c *gin.Context) {
 		return
 	}
 	// 判断是否已有，已有就不再生成
-	_, err = os.Stat("./upload/thumbnail/" + md5 + ".jpg")
+	_, err = os.Stat("./uploads/thumbnail/" + md5 + ".jpg")
 	if err == nil {
-		log.Logger.Info("find exist thumbnail:", zap.Any("md5", md5))
 		c.File("./uploads/thumbnail/" + md5 + ".jpg")
 		return
 	}
@@ -392,6 +391,5 @@ func GetThumbnail(c *gin.Context) {
 		makeResult(c, 503, err, nil)
 		return
 	}
-	log.Logger.Info("generate thumbnail success:", zap.Any("md5", md5))
 	c.File("./uploads/thumbnail/" + md5 + ".jpg")
 }

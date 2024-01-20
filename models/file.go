@@ -584,13 +584,13 @@ func GetThumbnails(uid uint64, startDate string, endDate string) []File {
 	return files
 }
 
-func GetThumbnail(uid, fileId uint64) (string, error) {
+func GetThumbnail(uid, fileId uint64) (string, string, error) {
 	// 权限校验
 	// 此文件是否属于该用户
 	var file File
 	DB.Table("files").Where("file_id = ? and valid = true", fileId).Find(&file)
 	if file.FileID == 0 || file.Uid != uid {
-		return "", common.NewError(common.ERROR_AUTH_NOT_PERMISSION)
+		return "", "", common.NewError(common.ERROR_AUTH_NOT_PERMISSION)
 	}
-	return file.MD5, nil
+	return file.MD5, file.Type, nil
 }

@@ -1,7 +1,7 @@
 package model
 
 import (
-	"Rhine-Cloud-Driver/common"
+	"Rhine-Cloud-Driver/pkg/util"
 	"gorm.io/gorm"
 	"strings"
 	"time"
@@ -30,7 +30,7 @@ func CheckSharePathValid(path string, uid, fileID uint64) ([]File, error) {
 	err := DB.Table("files").Where("file_id = ?", fileID).Find(&shareFile).Error
 	// 分享的文件不存在
 	if err != nil {
-		return nil, common.NewError(common.ERROR_SHARE_NOT_EXIST)
+		return nil, util.NewError(util.ERROR_SHARE_NOT_EXIST)
 	}
 	if path == "/" {
 		return []File{shareFile}, nil
@@ -39,7 +39,7 @@ func CheckSharePathValid(path string, uid, fileID uint64) ([]File, error) {
 		previousPath := shareFile.Path[:len(shareFile.Path)-1]
 		isValid, fileID := CheckPathValid(uid, path, previousPath)
 		if isValid == false {
-			return nil, common.NewError(common.ERROR_FILE_PATH_INVALID)
+			return nil, util.NewError(util.ERROR_FILE_PATH_INVALID)
 		}
 		var files []File
 		DB.Table("files").Where("parent_id = ? and valid = true", fileID).Find(&files)
@@ -52,7 +52,7 @@ func GetShareDetail(shareID uint64, password string, path string) (string, uint6
 	err := DB.Table("shares").Where("share_id=? and valid = true", shareID).Find(&ShareDetail).Error
 	if err != nil || ShareDetail.ShareID == 0 || (ShareDetail.ExpireTime != "-" && time.Now().Format("2006-01-02 15:04:05") >= ShareDetail.ExpireTime) {
 		// 分享无效或已过期
-		return "", 0, nil, common.NewError(common.ERROR_SHARE_NOT_EXIST)
+		return "", 0, nil, util.NewError(util.ERROR_SHARE_NOT_EXIST)
 	}
 	// 密码是否正确或无密码
 	user := User{}
@@ -62,7 +62,7 @@ func GetShareDetail(shareID uint64, password string, path string) (string, uint6
 	if ShareDetail.Password != "" && password != ShareDetail.Password {
 		// 仅返回用户名称和头像信息，不返回文件系统
 		if password != "" {
-			return "", 0, nil, common.NewError(common.ERROR_SHARE_PASSWORD_WRONG)
+			return "", 0, nil, util.NewError(util.ERROR_SHARE_PASSWORD_WRONG)
 		}
 		return user.Name, user.Uid, nil, nil
 	}
@@ -87,7 +87,7 @@ func TransferFiles(uid, shareID uint64, moveFileList []uint64, targetDirID uint6
 	if err != nil || shareDetail.FileID == 0 {
 		// 该分享不存在或已失效
 		tx.Rollback()
-		return common.NewError(common.ERROR_SHARE_NOT_EXIST)
+		return util.NewError(util.ERROR_SHARE_NOT_EXIST)
 	}
 	parentMap := make(map[uint64]uint64)
 	targetDir := File{}
@@ -95,7 +95,7 @@ func TransferFiles(uid, shareID uint64, moveFileList []uint64, targetDirID uint6
 	if err != nil || targetDir.Uid != uid {
 		// 目标文件夹不存在
 		tx.Rollback()
-		return common.NewError(common.ERROR_FILE_TARGETDIR_INVALID)
+		return util.NewError(util.ERROR_FILE_TARGETDIR_INVALID)
 	}
 	// 拿到用户信息
 	user := User{}
@@ -107,7 +107,7 @@ func TransferFiles(uid, shareID uint64, moveFileList []uint64, targetDirID uint6
 		if err != nil {
 			// 这个文件不存在或它的祖先不存在
 			tx.Rollback()
-			return common.NewError(common.ERROR_FILE_NOT_EXISTS)
+			return util.NewError(util.ERROR_FILE_NOT_EXISTS)
 		}
 		// 溯源，直到找到v的父亲为share的file_id或0为止，如果是0的话，证明要转存的文件不属于这个分享的文件，转存标记为失败
 		parentID := v
@@ -118,13 +118,13 @@ func TransferFiles(uid, shareID uint64, moveFileList []uint64, targetDirID uint6
 			if err != nil {
 				// 这个文件不存在或它的祖先不存在
 				tx.Rollback()
-				return common.NewError(common.ERROR_FILE_NOT_EXISTS)
+				return util.NewError(util.ERROR_FILE_NOT_EXISTS)
 			}
 		}
 		if parentID == 0 {
 			// 该文件不属于分享的文件
 			tx.Rollback()
-			return common.NewError(common.ERROR_FILE_INVALID)
+			return util.NewError(util.ERROR_FILE_INVALID)
 		}
 
 		// 目标文件夹是否有同名文件
@@ -132,7 +132,7 @@ func TransferFiles(uid, shareID uint64, moveFileList []uint64, targetDirID uint6
 		tx.Table("files").Where("parent_id=? and file_name=? and valid=true and is_dir=?", targetDirID, thisFile.FileName, thisFile.IsDir).Count(&count)
 		if count > 0 {
 			tx.Rollback()
-			return common.NewError(common.ERROR_FILE_TARGETDIR_SAME_FILES)
+			return util.NewError(util.ERROR_FILE_TARGETDIR_SAME_FILES)
 		}
 		// 先建立自己
 		newFile := File{
@@ -176,7 +176,7 @@ func TransferFiles(uid, shareID uint64, moveFileList []uint64, targetDirID uint6
 					allFilesStorage += subFiles[i].FileStorage
 					if user.UsedStorage+allFilesStorage > user.TotalStorage {
 						tx.Rollback()
-						return common.NewError(common.ERROR_USER_STORAGE_EXCEED)
+						return util.NewError(util.ERROR_USER_STORAGE_EXCEED)
 					}
 				}
 			}
@@ -184,7 +184,7 @@ func TransferFiles(uid, shareID uint64, moveFileList []uint64, targetDirID uint6
 			allFilesStorage += newFile.FileStorage
 			if user.UsedStorage+allFilesStorage > user.TotalStorage {
 				tx.Rollback()
-				return common.NewError(common.ERROR_USER_STORAGE_EXCEED)
+				return util.NewError(util.ERROR_USER_STORAGE_EXCEED)
 			}
 		}
 	}
@@ -192,7 +192,7 @@ func TransferFiles(uid, shareID uint64, moveFileList []uint64, targetDirID uint6
 	err = tx.Table("users").Where("uid=?", uid).Update("used_storage", gorm.Expr("used_storage+?", allFilesStorage)).Error
 	if err != nil {
 		tx.Rollback()
-		return common.NewError(common.ERROR_USER_STORAGE_EXCEED)
+		return util.NewError(util.ERROR_USER_STORAGE_EXCEED)
 	}
 	tx.Commit()
 	return nil
@@ -204,13 +204,13 @@ func CreateShare(uid, fileID uint64, ExpireTime string, password string) (uint64
 	err := DB.Table("files").Where("file_id=?", fileID).Find(&file).Error
 	if err != nil || file.Uid != uid {
 		// 无权访问这些文件
-		return 0, common.NewError(common.ERROR_SHARE_FILE_INVALID)
+		return 0, util.NewError(util.ERROR_SHARE_FILE_INVALID)
 	}
 	// 不允许重复分享同一个文件
 	var count int64
 	DB.Table("shares").Where("file_id = ? and valid = true and (now()<expire_time or expire_time='-')", fileID).Count(&count)
 	if count > 0 {
-		return 0, common.NewError(common.ERROR_SHARE_SAME_FILES)
+		return 0, util.NewError(util.ERROR_SHARE_SAME_FILES)
 	}
 	newShare := Share{
 		Uid:        uid,
@@ -222,7 +222,7 @@ func CreateShare(uid, fileID uint64, ExpireTime string, password string) (uint64
 	}
 	err = DB.Table("shares").Create(&newShare).Error
 	if err != nil {
-		return 0, common.NewError(common.ERROR_DB_WRITE_FAILED)
+		return 0, util.NewError(util.ERROR_DB_WRITE_FAILED)
 	}
 	return newShare.ShareID, nil
 }
@@ -236,7 +236,7 @@ func CancelShareCheck(uid uint64, shareID uint64) error {
 	err := DB.Table("shares").Where("share_id=?", shareID).Find(&shareDetail).Error
 	if err != nil || shareDetail.Uid != uid {
 		// 无权访问这些文件
-		return common.NewError(common.ERROR_SHARE_FILE_INVALID)
+		return util.NewError(util.ERROR_SHARE_FILE_INVALID)
 	}
 	return nil
 }
@@ -247,7 +247,7 @@ func CancelShare(uid uint64, shareID uint64) error {
 	}
 	err := DB.Table("shares").Where("share_id=?", shareID).Update("valid", 0).Error
 	if err != nil {
-		return common.NewError(common.ERROR_DB_WRITE_FAILED)
+		return util.NewError(util.ERROR_DB_WRITE_FAILED)
 	}
 	return nil
 }
@@ -256,24 +256,24 @@ func GetShareFile(shareID uint64, password string, fileID uint64) (file File, er
 	var shareDetail Share
 	err = DB.Table("shares").Where("share_id = ? and valid = true and (now()<expire_time or expire_time='-')", shareID).Find(&shareDetail).Error
 	if err != nil || password != shareDetail.Password {
-		return File{}, common.NewError(common.ERROR_SHARE_PASSWORD_WRONG)
+		return File{}, util.NewError(util.ERROR_SHARE_PASSWORD_WRONG)
 	}
 	DB.Table("shares").Where("share_id = ?", shareID).Update("download_times", gorm.Expr("download_times + 1"))
 	var parentFile File
 	err = DB.Table("files").Where("file_id = ?", shareDetail.FileID).Find(&parentFile).Error
 	if err != nil || parentFile.FileID == 0 {
-		return File{}, common.NewError(common.ERROR_FILE_NOT_EXISTS)
+		return File{}, util.NewError(util.ERROR_FILE_NOT_EXISTS)
 	}
 	if fileID == parentFile.FileID {
 		return parentFile, nil
 	}
 	err = DB.Table("files").Where("file_id = ?", fileID).Find(&file).Error
 	if err != nil || file.FileID == 0 {
-		return File{}, common.NewError(common.ERROR_FILE_NOT_EXISTS)
+		return File{}, util.NewError(util.ERROR_FILE_NOT_EXISTS)
 	}
 	parentFilePath := parentFile.Path + parentFile.FileName + "/"
 	if file.Uid == parentFile.Uid && len(file.Path) >= len(parentFilePath) && parentFilePath == file.Path[:len(parentFilePath)] {
 		return file, nil
 	}
-	return File{}, common.NewError(common.ERROR_DOWNLOAD_FILE_INVALID)
+	return File{}, util.NewError(util.ERROR_DOWNLOAD_FILE_INVALID)
 }

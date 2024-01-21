@@ -1,9 +1,9 @@
 package controllers
 
 import (
-	"Rhine-Cloud-Driver/common"
-	"Rhine-Cloud-Driver/logic/jwt"
 	model "Rhine-Cloud-Driver/models"
+	"Rhine-Cloud-Driver/pkg/jwt"
+	"Rhine-Cloud-Driver/pkg/util"
 	"github.com/gin-gonic/gin"
 	"strconv"
 	"time"
@@ -28,9 +28,9 @@ func GetShareDetail(c *gin.Context) {
 		return
 	}
 	// 从shareKey还原出shareID
-	shareID, err := common.HashDecode(data.ShareKey, 4)
+	shareID, err := util.HashDecode(data.ShareKey, 4)
 	if err != nil {
-		makeResult(c, 200, common.NewError(common.ERROR_SHARE_NOT_EXIST), nil)
+		makeResult(c, 200, util.NewError(util.ERROR_SHARE_NOT_EXIST), nil)
 		return
 	}
 	name, uid, originFiles, err := model.GetShareDetail(shareID, data.SharePassword, data.SharePath)
@@ -88,10 +88,10 @@ func CreateNewShare(c *gin.Context) {
 		return
 	}
 	// 将shareID转化为shareKey
-	shareKey, err := common.HashEncode([]int{int(shareID)}, 4)
+	shareKey, err := util.HashEncode([]int{int(shareID)}, 4)
 	if err != nil {
 		// 转化失败
-		makeResult(c, 200, common.NewError(common.ERROR_COMMON_TOOLS_HASH_ENCODE_FAILED), nil)
+		makeResult(c, 200, util.NewError(util.ERROR_COMMON_TOOLS_HASH_ENCODE_FAILED), nil)
 		return
 	}
 	makeResult(c, 200, nil, CreateNewShareResponse{shareKey})
@@ -113,9 +113,9 @@ func TransferFiles(c *gin.Context) {
 		return
 	}
 	// 从shareKey还原出shareID
-	shareID, err := common.HashDecode(data.ShareKey, 4)
+	shareID, err := util.HashDecode(data.ShareKey, 4)
 	if err != nil {
-		makeResult(c, 200, common.NewError(common.ERROR_COMMON_TOOLS_HASH_DECODE_FAILED), nil)
+		makeResult(c, 200, util.NewError(util.ERROR_COMMON_TOOLS_HASH_DECODE_FAILED), nil)
 		return
 	}
 	err = model.TransferFiles(uid, shareID, data.FileIDList, data.TargetDirID)
@@ -139,9 +139,9 @@ func CancelShare(c *gin.Context) {
 		return
 	}
 	// 从shareKey还原出shareID
-	shareID, err := common.HashDecode(data.ShareKey, 4)
+	shareID, err := util.HashDecode(data.ShareKey, 4)
 	if err != nil {
-		makeResult(c, 200, common.NewError(common.ERROR_COMMON_TOOLS_HASH_DECODE_FAILED), nil)
+		makeResult(c, 200, util.NewError(util.ERROR_COMMON_TOOLS_HASH_DECODE_FAILED), nil)
 		return
 	}
 	err = model.CancelShare(uid, shareID)
@@ -177,9 +177,9 @@ func GetMyShare(c *gin.Context) {
 			makeResult(c, 200, err, nil)
 			return
 		}
-		shareKey, err := common.HashEncode([]int{int(list[i].ShareID)}, 4)
+		shareKey, err := util.HashEncode([]int{int(list[i].ShareID)}, 4)
 		if err != nil {
-			makeResult(c, 200, common.NewError(common.ERROR_COMMON_TOOLS_HASH_ENCODE_FAILED), nil)
+			makeResult(c, 200, util.NewError(util.ERROR_COMMON_TOOLS_HASH_ENCODE_FAILED), nil)
 			return
 		}
 		shareList[i] = ShareDetail{
@@ -207,9 +207,9 @@ func GetShareFile(c *gin.Context) {
 		makeResult(c, 200, err, nil)
 		return
 	}
-	shareID, err := common.HashDecode(data.ShareKey, 4)
+	shareID, err := util.HashDecode(data.ShareKey, 4)
 	if err != nil {
-		makeResult(c, 200, common.NewError(common.ERROR_COMMON_TOOLS_HASH_DECODE_FAILED), nil)
+		makeResult(c, 200, util.NewError(util.ERROR_COMMON_TOOLS_HASH_DECODE_FAILED), nil)
 		return
 	}
 	file, err := model.GetShareFile(shareID, data.SharePassword, data.FileID)
@@ -217,9 +217,9 @@ func GetShareFile(c *gin.Context) {
 		makeResult(c, 200, err, nil)
 		return
 	}
-	fileKey, err := common.HashEncode([]int{int(file.FileID)}, 6)
+	fileKey, err := util.HashEncode([]int{int(file.FileID)}, 6)
 	if err != nil {
-		makeResult(c, 200, common.NewError(common.ERROR_COMMON_TOOLS_HASH_ENCODE_FAILED), nil)
+		makeResult(c, 200, util.NewError(util.ERROR_COMMON_TOOLS_HASH_ENCODE_FAILED), nil)
 		return
 	}
 	downloadID, err := model.GetDownloadKey(file.Uid, file.FileID, fileKey)

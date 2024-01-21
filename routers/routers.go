@@ -1,14 +1,14 @@
 package routers
 
 import (
-	"Rhine-Cloud-Driver/config"
 	"Rhine-Cloud-Driver/middleware"
 	model "Rhine-Cloud-Driver/models"
+	"Rhine-Cloud-Driver/pkg/conf"
 	"Rhine-Cloud-Driver/routers/controllers"
 	"github.com/gin-gonic/gin"
 )
 
-func InitRouter(cf config.Config) *gin.Engine {
+func InitRouter(cf conf.Config) *gin.Engine {
 	router := gin.Default()
 	router.MaxMultipartMemory = 1024 << 20
 	// 跨域设置

@@ -1,9 +1,9 @@
 package middleware
 
 import (
-	"Rhine-Cloud-Driver/common"
-	"Rhine-Cloud-Driver/logic/jwt"
 	model "Rhine-Cloud-Driver/models"
+	"Rhine-Cloud-Driver/pkg/jwt"
+	"Rhine-Cloud-Driver/pkg/util"
 	"github.com/gin-gonic/gin"
 )
 
@@ -12,17 +12,17 @@ func TokenVerify() gin.HandlerFunc {
 		token, err := c.Cookie("token")
 		if err != nil || !jwt.TokenValid(token) {
 			if err != nil {
-				err = common.NewError(common.ERROR_AUTH_GET_TOKEN)
+				err = util.NewError(util.ERROR_AUTH_GET_TOKEN)
 			} else {
-				err = common.NewError(common.ERROR_AUTH_TOKEN_INVALID)
+				err = util.NewError(util.ERROR_AUTH_TOKEN_INVALID)
 			}
-			c.JSON(401, common.ResponseData{Code: 1, Msg: err.Error(), Data: nil})
+			c.JSON(401, util.ResponseData{Code: 1, Msg: err.Error(), Data: nil})
 			c.Abort()
 			return
 		}
 		_, uid := jwt.TokenGetUid(token)
 		if !model.PermissionVerify(uid, model.PERMISSION_ACCESS) {
-			c.JSON(401, common.ResponseData{Code: 1, Msg: "您被禁止访问", Data: nil})
+			c.JSON(401, util.ResponseData{Code: 1, Msg: "您被禁止访问", Data: nil})
 			c.Abort()
 			return
 		}
@@ -35,7 +35,7 @@ func PermissionVerify(permissionCode int) gin.HandlerFunc {
 		token, _ := c.Cookie("token")
 		_, uid := jwt.TokenGetUid(token)
 		if !model.PermissionVerify(uid, permissionCode) {
-			c.JSON(200, common.ResponseData{Code: 1, Msg: "您被限制访问此功能", Data: nil})
+			c.JSON(200, util.ResponseData{Code: 1, Msg: "您被限制访问此功能", Data: nil})
 			c.Abort()
 		}
 		c.Next()

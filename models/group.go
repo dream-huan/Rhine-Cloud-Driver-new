@@ -1,8 +1,8 @@
 package model
 
 import (
-	"Rhine-Cloud-Driver/common"
-	"Rhine-Cloud-Driver/logic/redis"
+	"Rhine-Cloud-Driver/pkg/cache"
+	"Rhine-Cloud-Driver/pkg/util"
 	"strconv"
 )
 
@@ -64,9 +64,9 @@ func InitGroupPermission() {
 	DB.Table("groups").Find(&allGroups)
 	for _, v := range allGroups {
 		groupID := strconv.FormatUint(v.GroupId, 10)
-		redis.SetRedisKey("groups_name_"+groupID, v.GroupName, 0)
-		redis.SetRedisKey("groups_permission_"+groupID, v.GroupPermission, 0)
-		redis.SetRedisKey("groups_storage_"+groupID, v.GroupStorage, 0)
+		cache.SetRedisKey("groups_name_"+groupID, v.GroupName, 0)
+		cache.SetRedisKey("groups_permission_"+groupID, v.GroupPermission, 0)
+		cache.SetRedisKey("groups_storage_"+groupID, v.GroupStorage, 0)
 	}
 }
 
@@ -77,15 +77,15 @@ func ChangeUsersGroup(changedUid, operatorUid, newGroupId uint64) error {
 	err := DB.Table("users").Where("uid = ?", changedUid).Find(&changedUser).Error
 	if err != nil || changedUser.Uid == 0 {
 		// 此用户不存在
-		return common.NewError(common.ERROR_AUTH_UID_NOT_EXIST)
+		return util.NewError(util.ERROR_AUTH_UID_NOT_EXIST)
 	}
 	err = DB.Table("users").Where("uid = ?", operatorUid).Find(&operatorUser).Error
 	if err != nil || changedUser.Uid == 0 {
 		// 此用户不存在
-		return common.NewError(common.ERROR_AUTH_UID_NOT_EXIST)
+		return util.NewError(util.ERROR_AUTH_UID_NOT_EXIST)
 	}
 	if !ChangePermissionVerify(changedUser.GroupId, operatorUser.GroupId, 0, 0) {
-		return common.NewError(common.ERROR_AUTH_NOT_PERMISSION)
+		return util.NewError(util.ERROR_AUTH_NOT_PERMISSION)
 	}
 	// 数据库执行更改
 	DB.Table("users").Where("uid = ?", changedUid).Update("group_id", newGroupId)
@@ -98,24 +98,24 @@ func ChangeGroupInfo(uid uint64, groupID uint64, changedInfo Group) error {
 	err := DB.Table("users").Where("uid = ?", uid).Find(&user).Error
 	if err != nil || user.Uid == 0 {
 		// 此用户不存在
-		return common.NewError(common.ERROR_AUTH_UID_NOT_EXIST)
+		return util.NewError(util.ERROR_AUTH_UID_NOT_EXIST)
 	}
 	if !ChangePermissionVerify(groupID, user.GroupId, 0, 0) {
-		return common.NewError(common.ERROR_AUTH_NOT_PERMISSION)
+		return util.NewError(util.ERROR_AUTH_NOT_PERMISSION)
 	}
 	// 数据库更改
 	// redis更改
 	if changedInfo.GroupPermission > 0 {
 		DB.Table("groups").Where("group_id = ?", groupID).Update("group_permission", changedInfo.GroupPermission)
-		redis.SetRedisKey("groups_permission_"+strconv.FormatUint(groupID, 10), changedInfo.GroupPermission, 0)
+		cache.SetRedisKey("groups_permission_"+strconv.FormatUint(groupID, 10), changedInfo.GroupPermission, 0)
 	}
 	if changedInfo.GroupName != "" {
 		DB.Table("groups").Where("group_id = ?", groupID).Update("group_name", changedInfo.GroupName)
-		redis.SetRedisKey("groups_name_"+strconv.FormatUint(groupID, 10), changedInfo.GroupName, 0)
+		cache.SetRedisKey("groups_name_"+strconv.FormatUint(groupID, 10), changedInfo.GroupName, 0)
 	}
 	if changedInfo.GroupStorage > 0 {
 		DB.Table("groups").Where("group_id = ?", groupID).Update("group_storage", changedInfo.GroupStorage)
-		redis.SetRedisKey("groups_storage_"+strconv.FormatUint(groupID, 10), changedInfo.GroupStorage, 0)
+		cache.SetRedisKey("groups_storage_"+strconv.FormatUint(groupID, 10), changedInfo.GroupStorage, 0)
 	}
 	return nil
 }
@@ -123,7 +123,7 @@ func ChangeGroupInfo(uid uint64, groupID uint64, changedInfo Group) error {
 func GetGroupInfo(groupID uint64) (groupDetail Group, err error) {
 	err = DB.Table("groups").Where("group_id = ?", groupID).Find(&groupDetail).Error
 	if err != nil {
-		return groupDetail, common.NewError(common.ERROR_GROUP_NOT_EXIST)
+		return groupDetail, util.NewError(util.ERROR_GROUP_NOT_EXIST)
 	}
 	return
 }
@@ -133,7 +133,7 @@ func PermissionVerify(uid uint64, permissionCode int) bool {
 	// 拿到用户的用户组ID
 	DB.Table("users").Where("uid = ?", uid).Find(&user)
 	// 取得用户的权限
-	userPermissionStr, isExist := redis.GetRedisKey("groups_permission_" + strconv.FormatUint(user.GroupId, 10))
+	userPermissionStr, isExist := cache.GetRedisKey("groups_permission_" + strconv.FormatUint(user.GroupId, 10))
 	if isExist == false {
 		return false
 	}
@@ -167,8 +167,8 @@ func ChangePermissionVerify(changedGroupId, operatorGroupId, changedUid, operato
 		}
 		operatorGroupId = operator.GroupId
 	}
-	changedPermissionStr, _ := redis.GetRedisKey("groups_permission_" + strconv.FormatUint(changedGroupId, 10))
-	operatorPermissionStr, _ := redis.GetRedisKey("groups_permission_" + strconv.FormatUint(operatorGroupId, 10))
+	changedPermissionStr, _ := cache.GetRedisKey("groups_permission_" + strconv.FormatUint(changedGroupId, 10))
+	operatorPermissionStr, _ := cache.GetRedisKey("groups_permission_" + strconv.FormatUint(operatorGroupId, 10))
 	operatprPermission, _ := strconv.ParseInt(operatorPermissionStr.(string), 10, 64)
 	changedPermission, _ := strconv.ParseInt(changedPermissionStr.(string), 10, 64)
 	isok := (operatprPermission & (1 << PERMISSION_ADMIN_WRITE)) | (operatprPermission & (1 << PERMISSION_MAXIMUM))

@@ -1,11 +1,12 @@
 package model
 
 import (
-	"Rhine-Cloud-Driver/common"
-	"Rhine-Cloud-Driver/config"
-	"Rhine-Cloud-Driver/logic/jwt"
-	"Rhine-Cloud-Driver/logic/log"
-	"Rhine-Cloud-Driver/logic/redis"
+	"Rhine-Cloud-Driver/pkg/cache"
+	"Rhine-Cloud-Driver/pkg/conf"
+	"Rhine-Cloud-Driver/pkg/jwt"
+	"Rhine-Cloud-Driver/pkg/log"
+	"Rhine-Cloud-Driver/pkg/recaptcha"
+	"Rhine-Cloud-Driver/pkg/util"
 	"database/sql"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -19,7 +20,7 @@ var db *sql.DB
 
 // todo:设立钩子，进行权限认证
 
-func initMysql(cf config.MysqlConfig) {
+func initMysql(cf conf.MysqlConfig) {
 	// var err error
 	// // dsn := "root:SUIbianla123@tcp(127.0.0.1:3306)/project"
 	dsn := cf.User + ":" + cf.Password + "@tcp(" + cf.Address + ")/" + cf.Database + "?charset=utf8mb4&parseTime=True&loc=Local"
@@ -42,15 +43,15 @@ func initMysql(cf config.MysqlConfig) {
 	DB.Table("settings").Create(&Setting{Name: "register_open", Value: "0"})
 }
 
-func initJwt(cf config.JwtConfig) {
+func initJwt(cf conf.JwtConfig) {
 	jwt.Init(cf.Key)
 }
 
-func Init(cf config.Config) {
+func Init(cf conf.Config) {
 	initMysql(cf.MysqlManager)
 	initJwt(cf.JwtKey)
-	common.NewWorker(1)
-	redis.InitRedis(cf.RedisManager)
+	util.NewWorker(1)
+	cache.InitRedis(cf.RedisManager)
 	InitGroupPermission()
-	common.InitRecaptcha(cf.GoogleRecaptchaPrivateKey.Key)
+	recaptcha.InitRecaptcha(cf.GoogleRecaptchaPrivateKey.Key)
 }

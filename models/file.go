@@ -1,8 +1,8 @@
 package model
 
 import (
-	"Rhine-Cloud-Driver/common"
-	"Rhine-Cloud-Driver/logic/redis"
+	"Rhine-Cloud-Driver/pkg/cache"
+	"Rhine-Cloud-Driver/pkg/util"
 	"gorm.io/gorm"
 	"regexp"
 	"strconv"
@@ -130,12 +130,12 @@ func BuildFileSystem(uid uint64, path string, targetDirId uint64, limit, offset 
 			DB.Table("files").Where("file_id = ? and valid = true", targetDirId).Find(&files)
 			if len(files) == 0 {
 				// 文件夹不存在，非法操作
-				return 0, 0, nil, "", common.NewError(common.ERROR_FILE_NOT_EXISTS)
+				return 0, 0, nil, "", util.NewError(util.ERROR_FILE_NOT_EXISTS)
 			}
 		}
 		if files[0].Uid != uid {
 			// 非法操作
-			return 0, 0, nil, "", common.NewError(common.ERROR_FILE_INVALID)
+			return 0, 0, nil, "", util.NewError(util.ERROR_FILE_INVALID)
 		}
 		if files[0].FileID == targetDirId {
 			filePath = files[0].Path + files[0].FileName + "/"
@@ -164,12 +164,12 @@ func BuildFileSystem(uid uint64, path string, targetDirId uint64, limit, offset 
 	// 判断路径结果是否合法
 	isValid, fileID := CheckPathValid(uid, path, "")
 	if isValid == false {
-		return 0, 0, nil, "", common.NewError(common.ERROR_FILE_PATH_INVALID)
+		return 0, 0, nil, "", util.NewError(util.ERROR_FILE_PATH_INVALID)
 	}
 	// 分页查询，每次查询最多50条
 	// 结果存储到redis中
 	if limit > 50 || offset < 0 {
-		return 0, 0, nil, "", common.NewError(common.ERROR_FILE_COUNT_EXCEED_LIMIT)
+		return 0, 0, nil, "", util.NewError(util.ERROR_FILE_COUNT_EXCEED_LIMIT)
 	}
 	dirFileID = fileID
 	//DB.Table("files").Where("parent_id = ? and valid = true", fileID).Count(&count)
@@ -184,16 +184,16 @@ func UploadPrepare(md5, extraMD5, fileName string, chunkNum int64, uid, fileSize
 	var nowUser User
 	DB.Table("users").Where("uid=?", uid).Find(&nowUser)
 	if nowUser.UsedStorage+fileSize > nowUser.TotalStorage {
-		return false, "", "", common.NewError(common.ERROR_USER_STORAGE_EXCEED)
+		return false, "", "", util.NewError(util.ERROR_USER_STORAGE_EXCEED)
 	}
 	// 随机生成一个32位新的key，并将其作为UploadID
-	uploadID := common.RandStringRunes(32)
-	_, isExist := redis.GetRedisKey("upload_id_" + uploadID)
+	uploadID := util.RandStringRunes(32)
+	_, isExist := cache.GetRedisKey("upload_id_" + uploadID)
 	for isExist != false {
-		uploadID = common.RandStringRunes(32)
-		_, isExist = redis.GetRedisKey("upload_id_" + uploadID)
+		uploadID = util.RandStringRunes(32)
+		_, isExist = cache.GetRedisKey("upload_id_" + uploadID)
 	}
-	redis.SetRedisKey("upload_id_"+uploadID, md5, time.Second*60*30)
+	cache.SetRedisKey("upload_id_"+uploadID, md5, time.Second*60*30)
 	var files []File
 	DB.Table("files").Where("md5=?", md5).Find(&files)
 	if len(files) > 0 {
@@ -211,18 +211,18 @@ func UploadPrepare(md5, extraMD5, fileName string, chunkNum int64, uid, fileSize
 	// 先判断是否存在该md5
 	chunksRedisKey := "file_md5_chunks_" + md5
 	chunkNumRedisKey := "file_md5_chunk_num_" + md5
-	if oldChunkNum, isExist := redis.GetRedisKey(chunkNumRedisKey); isExist != false {
+	if oldChunkNum, isExist := cache.GetRedisKey(chunkNumRedisKey); isExist != false {
 		size, _ := strconv.ParseInt(oldChunkNum.(string), 10, 64)
 		chunks := make([]byte, size)
 		for i := int64(0); i < size; i++ {
-			if redis.GetRedisKeyBitmap(chunksRedisKey, i) == 1 {
+			if cache.GetRedisKeyBitmap(chunksRedisKey, i) == 1 {
 				chunks[i] = '1'
 			} else {
 				chunks[i] = '0'
 			}
 		}
-		redis.RenewRedisKey(chunksRedisKey, time.Second*60*60*24)
-		redis.RenewRedisKey(chunkNumRedisKey, time.Second*60*60*24)
+		cache.RenewRedisKey(chunksRedisKey, time.Second*60*60*24)
+		cache.RenewRedisKey(chunkNumRedisKey, time.Second*60*60*24)
 		return false, string(chunks), uploadID, nil
 	}
 	// 向内存中注册块数
@@ -231,28 +231,28 @@ func UploadPrepare(md5, extraMD5, fileName string, chunkNum int64, uid, fileSize
 	for i := int64(0); i < chunkNum; i++ {
 		chunks[i] = '0'
 	}
-	redis.RenewRedisKey(chunksRedisKey, time.Second*60*60*24)
-	redis.SetRedisKey(chunkNumRedisKey, chunkNum, time.Second*60*60*24)
+	cache.RenewRedisKey(chunksRedisKey, time.Second*60*60*24)
+	cache.SetRedisKey(chunkNumRedisKey, chunkNum, time.Second*60*60*24)
 	return false, string(chunks), uploadID, nil
 }
 
 func DealFileChunk(md5 string, fileIndex int64, uploadID string) (isExist bool, chunkNum int64, err error) {
-	if _, isExist := redis.GetRedisKey("upload_id_" + uploadID); isExist == false {
-		return false, 0, common.NewError(common.ERROR_AUTH_UPLOADID_INVALID)
+	if _, isExist := cache.GetRedisKey("upload_id_" + uploadID); isExist == false {
+		return false, 0, util.NewError(util.ERROR_AUTH_UPLOADID_INVALID)
 	}
 	chunksRedisKey := "file_md5_chunks_" + md5
 	chunkNumRedisKey := "file_md5_chunk_num_" + md5
 	// 从redis中拿到这块的情况
-	if tempRedisValue, isExist := redis.GetRedisKey(chunkNumRedisKey); isExist == false {
-		return false, chunkNum, common.NewError(common.ERROR_FILE_NOT_EXISTS)
+	if tempRedisValue, isExist := cache.GetRedisKey(chunkNumRedisKey); isExist == false {
+		return false, chunkNum, util.NewError(util.ERROR_FILE_NOT_EXISTS)
 	} else {
 		chunkNum, _ = strconv.ParseInt(tempRedisValue.(string), 10, 64)
 	}
 	if fileIndex < 0 || fileIndex >= chunkNum {
-		return false, chunkNum, common.NewError(common.ERROR_FILE_INDEX_INVALID)
+		return false, chunkNum, util.NewError(util.ERROR_FILE_INDEX_INVALID)
 	}
-	if redis.GetRedisKeyBitmap(chunksRedisKey, fileIndex) == 0 {
-		redis.SetRedisKeyBitmap(chunksRedisKey, fileIndex, 1, time.Second*60*60*24)
+	if cache.GetRedisKeyBitmap(chunksRedisKey, fileIndex) == 0 {
+		cache.SetRedisKeyBitmap(chunksRedisKey, fileIndex, 1, time.Second*60*60*24)
 		return false, chunkNum, nil
 	}
 	// 该部分已经被其他完成
@@ -260,8 +260,8 @@ func DealFileChunk(md5 string, fileIndex int64, uploadID string) (isExist bool, 
 }
 
 func MergeFileChunks(md5, uploadID string) (int64, error) {
-	if _, isExist := redis.GetRedisKey("upload_id_" + uploadID); isExist == false {
-		return 0, common.NewError(common.ERROR_AUTH_UPLOADID_INVALID)
+	if _, isExist := cache.GetRedisKey("upload_id_" + uploadID); isExist == false {
+		return 0, util.NewError(util.ERROR_AUTH_UPLOADID_INVALID)
 	}
 	// 查看数据库是否有该MD5
 	var count int64
@@ -272,20 +272,20 @@ func MergeFileChunks(md5, uploadID string) (int64, error) {
 	chunksRedisKey := "file_md5_chunks_" + md5
 	chunkNumRedisKey := "file_md5_chunk_num_" + md5
 	var chunkNum int64
-	if tempRedisValue, isExist := redis.GetRedisKey(chunkNumRedisKey); isExist == false {
-		return 0, common.NewError(common.ERROR_FILE_NOT_EXISTS)
+	if tempRedisValue, isExist := cache.GetRedisKey(chunkNumRedisKey); isExist == false {
+		return 0, util.NewError(util.ERROR_FILE_NOT_EXISTS)
 	} else {
 		chunkNum, _ = strconv.ParseInt(tempRedisValue.(string), 10, 64)
 	}
-	hasFinishedChunk := redis.CountRedisKeyBitmap(chunksRedisKey, 0, chunkNum-1)
+	hasFinishedChunk := cache.CountRedisKeyBitmap(chunksRedisKey, 0, chunkNum-1)
 	if hasFinishedChunk == chunkNum {
 		// 合并并删除redis的记录，包括uploadID...
-		redis.DelRedisKey(chunksRedisKey)
-		redis.DelRedisKey(uploadID)
-		redis.DelRedisKey(chunkNumRedisKey)
+		cache.DelRedisKey(chunksRedisKey)
+		cache.DelRedisKey(uploadID)
+		cache.DelRedisKey(chunkNumRedisKey)
 		return chunkNum, nil
 	}
-	return 0, common.NewError(common.ERROR_FILE_CHUNK_MISSING)
+	return 0, util.NewError(util.ERROR_FILE_CHUNK_MISSING)
 }
 
 func AddFile(uid uint64, md5, extraMD5 string, fileName string, fileSize, parentID uint64, isOrigin bool) error {
@@ -293,13 +293,13 @@ func AddFile(uid uint64, md5, extraMD5 string, fileName string, fileSize, parent
 	var nowUser User
 	DB.Table("users").Where("uid=?", uid).Find(&nowUser)
 	if nowUser.UsedStorage+fileSize > nowUser.TotalStorage {
-		return common.NewError(common.ERROR_USER_STORAGE_EXCEED)
+		return util.NewError(util.ERROR_USER_STORAGE_EXCEED)
 	}
 	// 校验parentID是否属于该UID本人和是否存在
 	var fileDir File
 	err := DB.Table("files").Where("file_id=? and is_dir=1", parentID).First(&fileDir).Error
 	if err != nil || fileDir.Uid != uid {
-		return common.NewError(common.ERROR_FILE_STORE_PATH_INVALID)
+		return util.NewError(util.ERROR_FILE_STORE_PATH_INVALID)
 	}
 	// 开启事务来增加
 	tx := DB.Begin()
@@ -308,7 +308,7 @@ func AddFile(uid uint64, md5, extraMD5 string, fileName string, fileSize, parent
 	tx.Table("files").Where("file_name=? and parent_id=? and is_dir=false and valid=true", fileName, parentID).Count(&count)
 	if count > 0 {
 		tx.Rollback()
-		return common.NewError(common.ERROR_FILE_SAME_NAME)
+		return util.NewError(util.ERROR_FILE_SAME_NAME)
 	}
 	tempSlice := strings.Split(fileName, ".")
 	fileType := ""
@@ -349,23 +349,23 @@ func AddFile(uid uint64, md5, extraMD5 string, fileName string, fileSize, parent
 func Mkdir(uid uint64, fileName string, parentID uint64) error {
 	// 检验文件夹名称是否非法
 	if fileName == "" {
-		return common.NewError(common.ERROR_FILE_NAME_INVALID)
+		return util.NewError(util.ERROR_FILE_NAME_INVALID)
 	}
 	matched, err := regexp.MatchString("[\\/+?:*<>!|]", fileName)
 	if err != nil || matched == true {
-		return common.NewError(common.ERROR_FILE_NAME_INVALID)
+		return util.NewError(util.ERROR_FILE_NAME_INVALID)
 	}
 	// 简验parentID是否属于该UID，并且该ID的is_dir和valid为true
 	var targetDir File
 	err = DB.Table("files").Where("file_id=?", parentID).First(&targetDir).Error
 	if err != nil || targetDir.Uid != uid || targetDir.IsDir == false || targetDir.Valid == false {
-		return common.NewError(common.ERROR_FILE_STORE_PATH_INVALID)
+		return util.NewError(util.ERROR_FILE_STORE_PATH_INVALID)
 	}
 	// 同名不允许在同一目录
 	var count int64
 	err = DB.Table("files").Where("file_name=? and parent_id=? and valid=true and is_dir=true", fileName, parentID).Count(&count).Error
 	if err != nil || count > 0 {
-		return common.NewError(common.ERROR_FILE_SAME_NAME)
+		return util.NewError(util.ERROR_FILE_SAME_NAME)
 	}
 	err = DB.Table("files").Create(&File{
 		Uid:        uid,
@@ -378,7 +378,7 @@ func Mkdir(uid uint64, fileName string, parentID uint64) error {
 		Path:       targetDir.Path + targetDir.FileName + "/",
 	}).Error
 	if err != nil {
-		return common.NewError(common.ERROR_DB_WRITE_FAILED)
+		return util.NewError(util.ERROR_DB_WRITE_FAILED)
 	}
 	return nil
 }
@@ -389,13 +389,13 @@ func RemoveFiles(uid uint64, fileID []uint64) error {
 	err := DB.Table("files").Where("file_id in ?", fileID).Find(&targetFile).Error
 	if err != nil {
 		// 文件不存在
-		return common.NewError(common.ERROR_FILE_NOT_EXISTS)
+		return util.NewError(util.ERROR_FILE_NOT_EXISTS)
 	}
 	tx := DB.Begin()
 	for _, v := range targetFile {
 		if v.FileID == 0 || v.Uid != uid || v.Valid == false {
 			tx.Rollback()
-			return common.NewError(common.ERROR_FILE_INVALID)
+			return util.NewError(util.ERROR_FILE_INVALID)
 		}
 		if v.IsDir == true {
 			var subFiles []File
@@ -425,7 +425,7 @@ func MoveFiles(uid uint64, moveFiles []uint64, targetDirID uint64) error {
 	err := tx.Table("files").Where("file_id=? and uid=? and is_dir=true and valid=true", targetDirID, uid).Find(&targetDir).Error
 	if err != nil || targetDir.FileID == 0 {
 		tx.Rollback()
-		return common.NewError(common.ERROR_FILE_TARGETDIR_INVALID)
+		return util.NewError(util.ERROR_FILE_TARGETDIR_INVALID)
 	}
 	var oldPathName string
 	var newPathName string
@@ -435,12 +435,12 @@ func MoveFiles(uid uint64, moveFiles []uint64, targetDirID uint64) error {
 		err := tx.Table("files").Where("file_id=?", v).First(&file).Error
 		if err != nil || file.Uid != uid {
 			tx.Rollback()
-			return common.NewError(common.ERROR_FILE_MOVEFILE_FAILED)
+			return util.NewError(util.ERROR_FILE_MOVEFILE_FAILED)
 		}
 		tx.Table("files").Where("parent_id=? and file_name=? and is_dir=? and valid=true", targetDirID, file.FileName, file.IsDir).Count(&count)
 		if count > 0 {
 			tx.Rollback()
-			return common.NewError(common.ERROR_FILE_TARGETDIR_SAME_FILES)
+			return util.NewError(util.ERROR_FILE_TARGETDIR_SAME_FILES)
 		}
 		if file.IsDir == true {
 			// 对子文件和子文件夹更改path
@@ -454,7 +454,7 @@ func MoveFiles(uid uint64, moveFiles []uint64, targetDirID uint64) error {
 				err = tx.Table("files").Where("file_id = ?", subFiles[i].FileID).Update("path", subFiles[i].Path).Error
 				if err != nil {
 					tx.Rollback()
-					return common.NewError(common.ERROR_FILE_MOVEFILE_FAILED)
+					return util.NewError(util.ERROR_FILE_MOVEFILE_FAILED)
 				}
 			}
 		}
@@ -463,13 +463,13 @@ func MoveFiles(uid uint64, moveFiles []uint64, targetDirID uint64) error {
 		err = tx.Table("files").Where("file_id = ?", file.FileID).Update("path", file.Path).Error
 		if err != nil {
 			tx.Rollback()
-			return common.NewError(common.ERROR_FILE_MOVEFILE_FAILED)
+			return util.NewError(util.ERROR_FILE_MOVEFILE_FAILED)
 		}
 		// 更改parent_id
 		err = tx.Table("files").Where("file_id = ?", v).Update("parent_id", targetDirID).Error
 		if err != nil {
 			tx.Rollback()
-			return common.NewError(common.ERROR_FILE_MOVEFILE_FAILED)
+			return util.NewError(util.ERROR_FILE_MOVEFILE_FAILED)
 		}
 	}
 	tx.Commit()
@@ -481,23 +481,23 @@ func GetDownloadKey(uid, fileID uint64, fileKey string) (downloadID string, err 
 	var file File
 	err = DB.Table("files").Where("file_id = ? and valid = true and is_dir = false", fileID).Find(&file).Error
 	if !PermissionVerify(uid, PERMISSION_ADMIN_READ) && (err != nil || file.Uid != uid) {
-		return "", common.NewError(common.ERROR_DOWNLOAD_FILE_INVALID)
+		return "", util.NewError(util.ERROR_DOWNLOAD_FILE_INVALID)
 	}
-	downloadID = common.RandStringRunes(6) + fileKey
-	redis.SetRedisKey("download_key_"+downloadID, strconv.FormatInt(int64(file.FileID), 10)+":"+file.FileName+":"+file.MD5, time.Hour/2)
+	downloadID = util.RandStringRunes(6) + fileKey
+	cache.SetRedisKey("download_key_"+downloadID, strconv.FormatInt(int64(file.FileID), 10)+":"+file.FileName+":"+file.MD5, time.Hour/2)
 	return downloadID, nil
 }
 
 func DownloadFile(key string, fileID uint64) (fileName, fileMD5 string, err error) {
 	err = nil
-	fileInfo, isExist := redis.GetRedisKey("download_key_" + key)
+	fileInfo, isExist := cache.GetRedisKey("download_key_" + key)
 	if isExist == false {
 		// 链接无效或已过期
-		return "", "", common.NewError(common.ERROR_DOWNLOAD_KEY_INVALID)
+		return "", "", util.NewError(util.ERROR_DOWNLOAD_KEY_INVALID)
 	}
 	tempSlice := strings.Split(fileInfo.(string), ":")
 	if tempSlice[0] != strconv.FormatUint(fileID, 10) {
-		return "", "", common.NewError(common.ERROR_DOWNLOAD_KEY_INVALID)
+		return "", "", util.NewError(util.ERROR_DOWNLOAD_KEY_INVALID)
 	}
 	fileName = tempSlice[1]
 	fileMD5 = tempSlice[2]
@@ -508,7 +508,7 @@ func GetFileInfo(fileID uint64, info string) (interface{}, error) {
 	file := File{}
 	err := DB.Table("files").Where("file_id=?", fileID).Find(&file).Error
 	if err != nil {
-		return nil, common.NewError(common.ERROR_FILE_NOT_EXISTS)
+		return nil, util.NewError(util.ERROR_FILE_NOT_EXISTS)
 	}
 	switch info {
 	case "all":
@@ -536,28 +536,28 @@ func GetFileInfo(fileID uint64, info string) (interface{}, error) {
 func ReNameFile(fileId, uid uint64, newName string) error {
 	// 检验文件夹名称是否非法
 	if newName == "" {
-		return common.NewError(common.ERROR_FILE_NAME_INVALID)
+		return util.NewError(util.ERROR_FILE_NAME_INVALID)
 	}
 	matched, err := regexp.MatchString("[\\/+?:*<>!|]", newName)
 	if err != nil || matched == true {
-		return common.NewError(common.ERROR_FILE_NAME_INVALID)
+		return util.NewError(util.ERROR_FILE_NAME_INVALID)
 	}
 	// 判断此文件是否属于操作者
 	var file File
 	err = DB.Table("files").Where("file_id = ? and valid = true", fileId).Find(&file).Error
 	if err != nil || file.FileID == 0 {
 		// 文件不存在
-		return common.NewError(common.ERROR_FILE_NOT_EXISTS)
+		return util.NewError(util.ERROR_FILE_NOT_EXISTS)
 	}
 	if file.Uid != uid {
 		// 无权操作
-		return common.NewError(common.ERROR_AUTH_NOT_PERMISSION)
+		return util.NewError(util.ERROR_AUTH_NOT_PERMISSION)
 	}
 	// 判断是否有同名文件
 	var count int64
 	err = DB.Table("files").Where("file_name = ? and parent_id = ?", newName, file.ParentID).Count(&count).Error
 	if count > 0 {
-		return common.NewError(common.ERROR_FILE_SAME_NAME)
+		return util.NewError(util.ERROR_FILE_SAME_NAME)
 	}
 	tempSlice := strings.Split(newName, ".")
 	fileType := ""
@@ -590,7 +590,7 @@ func GetThumbnail(uid, fileId uint64) (string, string, error) {
 	var file File
 	DB.Table("files").Where("file_id = ? and valid = true", fileId).Find(&file)
 	if file.FileID == 0 || file.Uid != uid {
-		return "", "", common.NewError(common.ERROR_AUTH_NOT_PERMISSION)
+		return "", "", util.NewError(util.ERROR_AUTH_NOT_PERMISSION)
 	}
 	return file.MD5, file.Type, nil
 }

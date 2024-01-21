@@ -1,11 +1,10 @@
 package controllers
 
 import (
-	"Rhine-Cloud-Driver/common"
-	"Rhine-Cloud-Driver/logic/jwt"
-	"Rhine-Cloud-Driver/logic/log"
 	model "Rhine-Cloud-Driver/models"
-	"github.com/disintegration/imaging"
+	"Rhine-Cloud-Driver/pkg/jwt"
+	"Rhine-Cloud-Driver/pkg/log"
+	"Rhine-Cloud-Driver/pkg/util"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"io/ioutil"
@@ -81,9 +80,9 @@ func Upload(c *gin.Context) {
 	//_, uid := jwt.TokenGetUid(token)
 	file, _ := c.FormFile("file")
 	form, _ := c.MultipartForm()
-	if form.Value["file_name"] == nil || form.Value["md5"] == nil || form.Value["file_name"] == nil || form.Value["extra_md5"] == nil || form.Value["upload_id"] == nil {
+	if form.Value["md5"] == nil || form.Value["file_name"] == nil || form.Value["extra_md5"] == nil || form.Value["upload_id"] == nil {
 		// 参数缺失
-		makeResult(c, 200, common.NewError(common.ERROR_PARA_ABSENT), nil)
+		makeResult(c, 200, util.NewError(util.ERROR_PARA_ABSENT), nil)
 		return
 	}
 	//fileName := form.Value["file_name"][0]
@@ -113,9 +112,9 @@ func MergeFileChunks(c *gin.Context) {
 	token, _ := c.Cookie("token")
 	_, uid := jwt.TokenGetUid(token)
 	form, _ := c.MultipartForm()
-	if form.Value["file_name"] == nil || form.Value["md5"] == nil || form.Value["file_name"] == nil || form.Value["extra_md5"] == nil || form.Value["upload_id"] == nil {
+	if form.Value["md5"] == nil || form.Value["file_name"] == nil || form.Value["extra_md5"] == nil || form.Value["upload_id"] == nil {
 		// 参数缺失
-		makeResult(c, 200, common.NewError(common.ERROR_PARA_ABSENT), nil)
+		makeResult(c, 200, util.NewError(util.ERROR_PARA_ABSENT), nil)
 		return
 	}
 	fileName := form.Value["file_name"][0]
@@ -151,7 +150,7 @@ func MergeFileChunks(c *gin.Context) {
 	for i := int64(0); i < chunkNum; i++ {
 		f, _ := os.OpenFile("./uploads/"+md5+"-"+strconv.FormatInt(i, 10), os.O_RDONLY, os.ModePerm)
 		b, _ := ioutil.ReadAll(f)
-		common.RemoveFile("./uploads/" + md5 + "-" + strconv.FormatInt(i, 10))
+		util.RemoveFile("./uploads/" + md5 + "-" + strconv.FormatInt(i, 10))
 		allFile.Write(b)
 	}
 	makeResult(c, 200, nil, nil)
@@ -243,9 +242,9 @@ func GetDownloadKey(c *gin.Context) {
 		makeResult(c, 200, err, nil)
 		return
 	}
-	hashValue, err := common.HashEncode([]int{int(data.FileID)}, 6)
+	hashValue, err := util.HashEncode([]int{int(data.FileID)}, 6)
 	if err != nil {
-		makeResult(c, 200, common.NewError(common.ERROR_COMMON_TOOLS_HASH_ENCODE_FAILED), nil)
+		makeResult(c, 200, util.NewError(util.ERROR_COMMON_TOOLS_HASH_ENCODE_FAILED), nil)
 		return
 	}
 	downloadKey, err := model.GetDownloadKey(uid, data.FileID, hashValue)
@@ -259,9 +258,9 @@ func GetDownloadKey(c *gin.Context) {
 func DownloadFile(c *gin.Context) {
 	key := c.Param("key")
 	// 取fileID
-	fileID, err := common.HashDecode(key[6:], 6)
+	fileID, err := util.HashDecode(key[6:], 6)
 	if err != nil {
-		makeResult(c, 200, common.NewError(common.ERROR_COMMON_TOOLS_HASH_DECODE_FAILED), nil)
+		makeResult(c, 200, util.NewError(util.ERROR_COMMON_TOOLS_HASH_DECODE_FAILED), nil)
 		return
 	}
 	fileName, fileMD5, err := model.DownloadFile(key, fileID)
@@ -376,18 +375,8 @@ func GetThumbnail(c *gin.Context) {
 		c.File("./uploads/thumbnail/" + md5 + "." + pngType)
 		return
 	}
-	img, err := imaging.Open("./uploads/" + md5)
+	err = util.ThumbGenerate(md5, pngType)
 	if err != nil {
-		// 一般是找不到原图像
-		log.Logger.Error("failed to generate thumbnail", zap.Any("md5", md5), zap.Error(err))
-		makeResult(c, 503, err, nil)
-		return
-	}
-	img1 := imaging.Resize(img, 200, 0, imaging.NearestNeighbor)
-	err = imaging.Save(img1, "./uploads/thumbnail/"+md5+"."+pngType)
-	if err != nil {
-		// 无权限存储图像或存储空间不足
-		log.Logger.Error("failed to save thumbnail", zap.Any("md5", md5), zap.Error(err))
 		makeResult(c, 503, err, nil)
 		return
 	}

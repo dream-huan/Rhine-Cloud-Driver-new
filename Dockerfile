@@ -32,7 +32,7 @@ COPY --from=0 /rhine-cloud-driver-builder/Rhine-Cloud-Driver-new/Rhine-Cloud-Dri
 
 COPY --from=0 /rhine-cloud-driver-builder/Rhine-Cloud-Driver-new/wait-for-it.sh ./
 
-VOLUME [ "/rhine-cloud-driver/uploads",  "/rhine-cloud-driver/avatar", "/rhine-cloud-driver/logs"]
+VOLUME [ "/rhine-cloud-driver/uploads",  "/rhine-cloud-driver/avatar", "/rhine-cloud-driver/logs", "/rhine-cloud-driver/uploads/thumbnail"]
 
 RUN chmod +x ./wait-for-it.sh
 

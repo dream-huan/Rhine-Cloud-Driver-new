@@ -1,7 +1,7 @@
 package model
 
 import (
-	"Rhine-Cloud-Driver/common"
+	"Rhine-Cloud-Driver/pkg/util"
 	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
@@ -24,13 +24,13 @@ func Test_BuildFileSystem(t *testing.T) {
 	asserts.Nil(err)
 	//含有非法字符
 	_, _, _, _, err = BuildFileSystem(user.Uid, "/*", 0, 50, 0, "", []string{})
-	asserts.Equal(err.Error(), common.NewError(common.ERROR_FILE_PATH_INVALID).Error())
+	asserts.Equal(err.Error(), util.NewError(util.ERROR_FILE_PATH_INVALID).Error())
 	//前后未加/且不存在该路径
 	_, _, _, _, err = BuildFileSystem(user.Uid, "123", 0, 50, 0, "", []string{})
-	asserts.Equal(err.Error(), common.NewError(common.ERROR_FILE_PATH_INVALID).Error())
+	asserts.Equal(err.Error(), util.NewError(util.ERROR_FILE_PATH_INVALID).Error())
 	// 超过50限制
 	_, _, _, _, err = BuildFileSystem(user.Uid, "/", 0, 100, 0, "", []string{})
-	asserts.Equal(err.Error(), common.NewError(common.ERROR_FILE_COUNT_EXCEED_LIMIT).Error())
+	asserts.Equal(err.Error(), util.NewError(util.ERROR_FILE_COUNT_EXCEED_LIMIT).Error())
 }
 
 func Test_CheckFileExist(t *testing.T) {

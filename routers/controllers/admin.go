@@ -1,9 +1,10 @@
 package controllers
 
 import (
-	"Rhine-Cloud-Driver/common"
-	"Rhine-Cloud-Driver/logic/jwt"
 	model "Rhine-Cloud-Driver/models"
+	"Rhine-Cloud-Driver/pkg/jwt"
+	"Rhine-Cloud-Driver/pkg/recaptcha"
+	"Rhine-Cloud-Driver/pkg/util"
 	"github.com/gin-gonic/gin"
 	"strconv"
 )
@@ -35,7 +36,7 @@ func GetAllUser(c *gin.Context) {
 		return
 	}
 	if data.Limit > 50 || data.Limit < 0 || data.Offset < 0 {
-		makeResult(c, 200, common.NewError(common.ERROR_PARA_INVALID), nil)
+		makeResult(c, 200, util.NewError(util.ERROR_PARA_INVALID), nil)
 	}
 	count, userList := model.GetAllUser(data.Offset, data.Limit)
 	users := make([]UserInfo, len(userList))
@@ -89,7 +90,7 @@ func GetAllShare(c *gin.Context) {
 		return
 	}
 	if data.Limit > 50 || data.Limit < 0 || data.Offset < 0 {
-		makeResult(c, 200, common.NewError(common.ERROR_PARA_INVALID), nil)
+		makeResult(c, 200, util.NewError(util.ERROR_PARA_INVALID), nil)
 	}
 	count, shareList := model.GetAllShare(data.Offset, data.Limit)
 	shares := make([]ShareDetail, len(shareList))
@@ -99,9 +100,9 @@ func GetAllShare(c *gin.Context) {
 			makeResult(c, 200, err, nil)
 			return
 		}
-		shareKey, err := common.HashEncode([]int{int(shareList[i].ShareID)}, 4)
+		shareKey, err := util.HashEncode([]int{int(shareList[i].ShareID)}, 4)
 		if err != nil {
-			makeResult(c, 200, common.NewError(common.ERROR_COMMON_TOOLS_HASH_ENCODE_FAILED), nil)
+			makeResult(c, 200, util.NewError(util.ERROR_COMMON_TOOLS_HASH_ENCODE_FAILED), nil)
 			return
 		}
 		shares[i] = ShareDetail{
@@ -166,7 +167,7 @@ func GetAllFile(c *gin.Context) {
 		return
 	}
 	if data.Limit > 50 || data.Limit < 0 || data.Offset < 0 {
-		makeResult(c, 200, common.NewError(common.ERROR_PARA_INVALID), nil)
+		makeResult(c, 200, util.NewError(util.ERROR_PARA_INVALID), nil)
 		return
 	}
 	count, fileList := model.GetAllFile(data.Offset, data.Limit)
@@ -194,7 +195,7 @@ func AdminGetUserDetail(c *gin.Context) {
 	}
 	uid, err := strconv.ParseUint(data.Uid, 10, 64)
 	if err != nil {
-		makeResult(c, 200, common.NewError(common.ERROR_ROUTER_PARSEJSON), nil)
+		makeResult(c, 200, util.NewError(util.ERROR_ROUTER_PARSEJSON), nil)
 	}
 	err, user := model.AdminGetUserDetail(uid)
 	if err != nil {
@@ -234,7 +235,7 @@ func AdminEditUserInfo(c *gin.Context) {
 	}
 	changedUid, err := strconv.ParseUint(data.ChangedUid, 10, 64)
 	if err != nil {
-		makeResult(c, 200, common.NewError(common.ERROR_ROUTER_PARSEJSON), nil)
+		makeResult(c, 200, util.NewError(util.ERROR_ROUTER_PARSEJSON), nil)
 		return
 	}
 	err = model.AdminEditUserInfo(changedUid, uid, data.NewName, data.NewPassword, data.NewGroupId, data.NewStorage)
@@ -252,11 +253,11 @@ func AdminUploadAvatar(c *gin.Context) {
 	form, _ := c.MultipartForm()
 	changedUid, err := strconv.ParseUint(form.Value["uid"][0], 10, 64)
 	if err != nil {
-		makeResult(c, 200, common.NewError(common.ERROR_ROUTER_PARSEJSON), nil)
+		makeResult(c, 200, util.NewError(util.ERROR_ROUTER_PARSEJSON), nil)
 		return
 	}
 	if !model.ChangePermissionVerify(0, 0, changedUid, uid) {
-		makeResult(c, 200, common.NewError(common.ERROR_AUTH_NOT_PERMISSION), nil)
+		makeResult(c, 200, util.NewError(util.ERROR_AUTH_NOT_PERMISSION), nil)
 		return
 	}
 	c.SaveUploadedFile(file, "./avatar/"+strconv.FormatUint(changedUid, 10))
@@ -334,15 +335,15 @@ func VerifyAdmin(c *gin.Context) {
 		return
 	}
 	// 先验证recaptcha是否通过
-	if isok := common.VerifyToken(data.RecaptchaToken); isok != true {
-		makeResult(c, 200, common.NewError(common.ERROR_COMMON_RECAPTCHA_VERIFICATION), nil)
+	if isok := recaptcha.VerifyToken(data.RecaptchaToken); isok != true {
+		makeResult(c, 200, util.NewError(util.ERROR_COMMON_RECAPTCHA_VERIFICATION), nil)
 		return
 	}
 	// 验证密码
 	user := model.User{Uid: uid}
 	user.GetUserDetail()
 	if !user.VerifyPassword(data.Password) {
-		makeResult(c, 200, common.NewError(common.ERROR_USER_UID_PASSWORD_WRONG), nil)
+		makeResult(c, 200, util.NewError(util.ERROR_USER_UID_PASSWORD_WRONG), nil)
 		return
 	}
 	if model.PermissionVerify(uid, model.PERMISSION_ADMIN_WRITE) {

@@ -161,8 +161,10 @@ type ChangeUserInfoRequest struct {
 }
 
 func ChangeUserInfo(c *gin.Context) {
-	token, _ := c.Cookie("token")
-	_, uid := jwt.TokenGetUid(token)
+	//token, _ := c.Cookie("token")
+	//_, uid := jwt.TokenGetUid(token)
+	tempValue, _ := c.Get("uid")
+	uid := tempValue.(uint64)
 	var data ChangeUserInfoRequest
 	if err := c.ShouldBindJSON(&data); err != nil {
 		makeResult(c, 200, err, nil)
@@ -177,8 +179,10 @@ func ChangeUserInfo(c *gin.Context) {
 }
 
 func UploadAvatar(c *gin.Context) {
-	token, _ := c.Cookie("token")
-	_, uid := jwt.TokenGetUid(token)
+	//token, _ := c.Cookie("token")
+	//_, uid := jwt.TokenGetUid(token)
+	tempValue, _ := c.Get("uid")
+	uid := tempValue.(uint64)
 	file, _ := c.FormFile("avatar")
 	c.SaveUploadedFile(file, "./avatar/"+strconv.FormatUint(uid, 10))
 	makeResult(c, 200, nil, nil)

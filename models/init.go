@@ -8,7 +8,6 @@ import (
 	"Rhine-Cloud-Driver/pkg/recaptcha"
 	"Rhine-Cloud-Driver/pkg/util"
 	"database/sql"
-
 	_ "github.com/go-sql-driver/mysql"
 	"go.uber.org/zap"
 	"gorm.io/driver/mysql"
@@ -54,4 +53,5 @@ func Init(cf conf.Config) {
 	cache.InitRedis(cf.RedisManager)
 	InitGroupPermission()
 	recaptcha.InitRecaptcha(cf.GoogleRecaptchaPrivateKey.Key)
+	util.MkdirIfNoExist("metadata")
 }

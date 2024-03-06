@@ -36,3 +36,15 @@ func GetSettingByName(name string) string {
 	cache.SetRedisKey("setting_"+name, setting.Value, 0)
 	return setting.Value
 }
+
+func GetSettingByNames(names ...string) (res map[string]string) {
+	for _, v := range names {
+		tempRes := GetSettingByName(v)
+		if tempRes != "" {
+			res[v] = tempRes
+		}
+	}
+	return
+}
+
+//func S

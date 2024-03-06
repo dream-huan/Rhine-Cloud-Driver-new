@@ -3,6 +3,7 @@ package main
 import (
 	model "Rhine-Cloud-Driver/models"
 	"Rhine-Cloud-Driver/pkg/conf"
+	"Rhine-Cloud-Driver/pkg/crontab"
 	"Rhine-Cloud-Driver/pkg/log"
 	"Rhine-Cloud-Driver/routers"
 	"fmt"
@@ -36,5 +37,6 @@ func InitConfig() {
 
 func main() {
 	InitConfig()
+	crontab.Init()
 	routers.InitRouter(cf)
 }

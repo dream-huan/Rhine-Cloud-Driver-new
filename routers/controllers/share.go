@@ -2,7 +2,6 @@ package controllers
 
 import (
 	model "Rhine-Cloud-Driver/models"
-	"Rhine-Cloud-Driver/pkg/jwt"
 	"Rhine-Cloud-Driver/pkg/util"
 	"github.com/gin-gonic/gin"
 	"strconv"
@@ -69,8 +68,10 @@ type CreateNewShareResponse struct {
 }
 
 func CreateNewShare(c *gin.Context) {
-	token, _ := c.Cookie("token")
-	_, uid := jwt.TokenGetUid(token)
+	//token, _ := c.Cookie("token")
+	//_, uid := jwt.TokenGetUid(token)
+	tempValue, _ := c.Get("uid")
+	uid := tempValue.(uint64)
 	var data CreateNewShareRequest
 	if err := c.ShouldBindJSON(&data); err != nil {
 		makeResult(c, 200, err, nil)
@@ -105,8 +106,10 @@ type TransferFilesRequest struct {
 }
 
 func TransferFiles(c *gin.Context) {
-	token, _ := c.Cookie("token")
-	_, uid := jwt.TokenGetUid(token)
+	//token, _ := c.Cookie("token")
+	//_, uid := jwt.TokenGetUid(token)
+	tempValue, _ := c.Get("uid")
+	uid := tempValue.(uint64)
 	var data TransferFilesRequest
 	if err := c.ShouldBindJSON(&data); err != nil {
 		makeResult(c, 200, err, nil)
@@ -131,8 +134,10 @@ type CancelShareRequest struct {
 }
 
 func CancelShare(c *gin.Context) {
-	token, _ := c.Cookie("token")
-	_, uid := jwt.TokenGetUid(token)
+	//token, _ := c.Cookie("token")
+	//_, uid := jwt.TokenGetUid(token)
+	tempValue, _ := c.Get("uid")
+	uid := tempValue.(uint64)
 	var data CancelShareRequest
 	if err := c.ShouldBindJSON(&data); err != nil {
 		makeResult(c, 200, err, nil)
@@ -167,8 +172,10 @@ type ShareDetail struct {
 }
 
 func GetMyShare(c *gin.Context) {
-	token, _ := c.Cookie("token")
-	_, uid := jwt.TokenGetUid(token)
+	//token, _ := c.Cookie("token")
+	//_, uid := jwt.TokenGetUid(token)
+	tempValue, _ := c.Get("uid")
+	uid := tempValue.(uint64)
 	list := model.GetMyShare(uid)
 	shareList := make([]ShareDetail, len(list))
 	for i := range list {

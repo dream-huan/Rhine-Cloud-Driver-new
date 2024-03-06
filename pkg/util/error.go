@@ -67,6 +67,11 @@ const (
 	ERROR_FILE_MOVEFILE_FAILED      = 700011
 	ERROR_FILE_INVALID              = 700012
 	ERROR_FILE_TARGETDIR_SAME_FILES = 700013
+	ERROR_MKDIR                     = 700014
+	ERROR_METADATA_INVALID          = 700015
+	ERROR_FILE_EXISTED              = 700016
+	ERROR_FILE_STATUS_UPLOADING     = 700017
+	ERROR_FILE_TINY                 = 700018
 )
 
 // 分享相关
@@ -94,6 +99,12 @@ const (
 const (
 	ERROR_PARA_INVALID = 1100001
 	ERROR_PARA_ABSENT  = 1100002
+)
+
+// 上传相关
+const (
+	ERROR_UPLOAD_TIME_EXCEED   = 1200001
+	ERROR_UPLOAD_USER_NO_MATCH = 1200002
 )
 
 var errMap = map[int]string{
@@ -143,6 +154,13 @@ var errMap = map[int]string{
 	ERROR_PARA_INVALID:                    "参数非法",
 	ERROR_USER_NOT_EXIST:                  "目标用户不存在",
 	ERROR_GROUP_DEFAULT:                   "默认用户组不能被删除",
+	ERROR_MKDIR:                           "系统新建文件夹失败",
+	ERROR_METADATA_INVALID:                "元数据文件非法",
+	ERROR_FILE_EXISTED:                    "该文件已经上传成功",
+	ERROR_UPLOAD_TIME_EXCEED:              "该上传会话已过期，请重新上传",
+	ERROR_UPLOAD_USER_NO_MATCH:            "上传用户失效",
+	ERROR_FILE_STATUS_UPLOADING:           "文件还在上传中，请稍后重试",
+	ERROR_FILE_TINY:                       "无法上传小于1B的文件",
 }
 
 func NewError(errorNum int) error {

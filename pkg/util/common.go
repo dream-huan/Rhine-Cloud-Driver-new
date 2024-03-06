@@ -18,7 +18,7 @@ type ResponseData struct {
 	Data interface{} `json:"data"`
 }
 
-const letterBytes = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+const letterBytes = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-"
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
@@ -151,3 +151,8 @@ func (w *Worker) nextID() (uint64, error) {
 
 	return uint64(id), nil
 }
+
+//// 生成文件的BLAKE3值
+//func GenerateFileMD5() string {
+//
+//}

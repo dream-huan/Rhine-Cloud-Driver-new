@@ -1,9 +1,9 @@
 package model
 
 import (
-	"Rhine-Cloud-Driver/common"
-	"Rhine-Cloud-Driver/config"
-	"Rhine-Cloud-Driver/logic/log"
+	"Rhine-Cloud-Driver/pkg/conf"
+	"Rhine-Cloud-Driver/pkg/log"
+	"Rhine-Cloud-Driver/pkg/util"
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
@@ -14,8 +14,8 @@ import (
 )
 
 func init() {
-	var cf config.Config
-	configFile, err := ioutil.ReadFile("../conf/Rhine-Cloud-Driver.yaml")
+	var cf conf.Config
+	configFile, err := ioutil.ReadFile("../config.yaml")
 	if err != nil {
 		fmt.Printf("%v", err)
 		panic(err)
@@ -58,7 +58,7 @@ func Test_AddUser(t *testing.T) {
 		CreateTime: time.Now().Format("2006-01-02 15:04:05"),
 	}
 	err = user.AddUser()
-	asserts.Equal(err.Error(), common.NewError(common.ERROR_USER_EMAIL_CONFLICT).Error())
+	asserts.Equal(err.Error(), util.NewError(util.ERROR_USER_EMAIL_CONFLICT).Error())
 	user = User{
 		Name:       "",
 		Password:   "123456",
@@ -66,7 +66,7 @@ func Test_AddUser(t *testing.T) {
 		CreateTime: time.Now().Format("2006-01-02 15:04:05"),
 	}
 	err = user.AddUser()
-	asserts.Equal(err.Error(), common.NewError(common.ERROR_USER_NAME_LENGTH_NOT_MATCH).Error())
+	asserts.Equal(err.Error(), util.NewError(util.ERROR_USER_NAME_LENGTH_NOT_MATCH).Error())
 	user = User{
 		Name:       "1",
 		Password:   "12345",
@@ -74,7 +74,7 @@ func Test_AddUser(t *testing.T) {
 		CreateTime: time.Now().Format("2006-01-02 15:04:05"),
 	}
 	err = user.AddUser()
-	asserts.Equal(err.Error(), common.NewError(common.ERROR_USER_PASSWORD_NOT_MATCH_RULES).Error())
+	asserts.Equal(err.Error(), util.NewError(util.ERROR_USER_PASSWORD_NOT_MATCH_RULES).Error())
 	user = User{
 		Name:       "1",
 		Password:   "123456",
@@ -82,7 +82,7 @@ func Test_AddUser(t *testing.T) {
 		CreateTime: time.Now().Format("2006-01-02 15:04:05"),
 	}
 	err = user.AddUser()
-	asserts.Equal(err.Error(), common.NewError(common.ERROR_USER_EMAIL_NOT_MATHCH_RULES).Error())
+	asserts.Equal(err.Error(), util.NewError(util.ERROR_USER_EMAIL_NOT_MATHCH_RULES).Error())
 }
 
 func Test_Login(t *testing.T) {
@@ -99,17 +99,17 @@ func Test_Login(t *testing.T) {
 	asserts.Nil(err)
 	// token错误/非法
 	token, err = user.VerifyAccess("12gregreg", 0, "", "")
-	asserts.Equal(err.Error(), common.NewError(common.ERROR_USER_TOEKN_INVALIED).Error())
+	asserts.Equal(err.Error(), util.NewError(util.ERROR_USER_TOEKN_INVALIED).Error())
 	// uid登录 密码错误
 	token, err = user.VerifyAccess("", user.Uid, "", "321456")
-	asserts.Equal(err.Error(), common.NewError(common.ERROR_USER_UID_PASSWORD_WRONG).Error())
+	asserts.Equal(err.Error(), util.NewError(util.ERROR_USER_UID_PASSWORD_WRONG).Error())
 	// 邮箱登录 密码错误
 	token, err = user.VerifyAccess("", 0, "1@qq.com", "321456")
-	asserts.Equal(err.Error(), common.NewError(common.ERROR_USER_UID_PASSWORD_WRONG).Error())
+	asserts.Equal(err.Error(), util.NewError(util.ERROR_USER_UID_PASSWORD_WRONG).Error())
 	// 邮箱不存在
 	token, err = user.VerifyAccess("", 0, "2@qq.com", "123456")
-	asserts.Equal(err.Error(), common.NewError(common.ERROR_USER_UID_PASSWORD_WRONG).Error())
+	asserts.Equal(err.Error(), util.NewError(util.ERROR_USER_UID_PASSWORD_WRONG).Error())
 	// 邮箱不填
 	token, err = user.VerifyAccess("", 0, "", "123456")
-	asserts.Equal(err.Error(), common.NewError(common.ERROR_USER_NOT_UID_AND_EMAIL).Error())
+	asserts.Equal(err.Error(), util.NewError(util.ERROR_USER_NOT_UID_AND_EMAIL).Error())
 }

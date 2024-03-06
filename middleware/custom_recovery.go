@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"Rhine-Cloud-Driver/logic/log"
+	"Rhine-Cloud-Driver/pkg/log"
 	"bytes"
 	"errors"
 	"fmt"

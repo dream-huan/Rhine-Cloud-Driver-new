@@ -1,10 +1,10 @@
 package model
 
 import (
-	"Rhine-Cloud-Driver/common"
-	"Rhine-Cloud-Driver/logic/jwt"
-	"Rhine-Cloud-Driver/logic/log"
-	"Rhine-Cloud-Driver/logic/redis"
+	"Rhine-Cloud-Driver/pkg/cache"
+	"Rhine-Cloud-Driver/pkg/jwt"
+	"Rhine-Cloud-Driver/pkg/log"
+	"Rhine-Cloud-Driver/pkg/util"
 	"crypto/sha256"
 	"encoding/hex"
 	"regexp"
@@ -31,7 +31,7 @@ type User struct {
 }
 
 func setHaltHash(password string) string {
-	halt := common.RandStringRunes(16)
+	halt := util.RandStringRunes(16)
 	hash := sha256.New()
 	value := hex.EncodeToString(hash.Sum([]byte(password + string(halt))))
 	return value + ":" + halt
@@ -88,7 +88,7 @@ func (user *User) VerifyAccess(token string, uid uint64, email string, password 
 	if token != "" {
 		isok, _ := jwt.TokenGetUid(token)
 		if !(isok && jwt.TokenValid(token)) {
-			return "", common.NewError(common.ERROR_USER_TOEKN_INVALIED)
+			return "", util.NewError(util.ERROR_USER_TOEKN_INVALIED)
 		}
 		return "", nil
 	}
@@ -100,41 +100,41 @@ func (user *User) VerifyAccess(token string, uid uint64, email string, password 
 	} else if email != "" {
 		DB.Table("users").Where("email", email).Find(&user).Count(&count)
 	} else {
-		return "", common.NewError(common.ERROR_USER_NOT_UID_AND_EMAIL)
+		return "", util.NewError(util.ERROR_USER_NOT_UID_AND_EMAIL)
 	}
 	if count == 0 {
-		return "", common.NewError(common.ERROR_USER_UID_PASSWORD_WRONG)
+		return "", util.NewError(util.ERROR_USER_UID_PASSWORD_WRONG)
 	}
 	if user.VerifyPassword(password) {
 		// 生成新的token下发
 		token, err := jwt.GenerateToken(user.Uid, user.Email)
 		if err != nil {
 			log.Logger.Error("生成token错误", zap.Error(err))
-			return "", common.NewError(common.ERROR_JWT_GENERATE_TOKEN_FAILED)
+			return "", util.NewError(util.ERROR_JWT_GENERATE_TOKEN_FAILED)
 		}
 		return token, nil
 	}
-	return "", common.NewError(common.ERROR_USER_UID_PASSWORD_WRONG)
+	return "", util.NewError(util.ERROR_USER_UID_PASSWORD_WRONG)
 }
 
 // 新用户生成
 func (user *User) AddUser() error {
 	// 判断名称长度
 	if !checkNewName(user.Name) {
-		return common.NewError(common.ERROR_USER_NAME_LENGTH_NOT_MATCH)
+		return util.NewError(util.ERROR_USER_NAME_LENGTH_NOT_MATCH)
 	}
 	// 判断密码长度以及字符规定
 	if !checkNewPassword(user.Password) {
-		return common.NewError(common.ERROR_USER_PASSWORD_NOT_MATCH_RULES)
+		return util.NewError(util.ERROR_USER_PASSWORD_NOT_MATCH_RULES)
 	}
 	// 判断邮箱是否合法 满足xxx@xxx.xxx条件
 	if !checkNewEmail(user.Email) {
-		return common.NewError(common.ERROR_USER_EMAIL_NOT_MATHCH_RULES)
+		return util.NewError(util.ERROR_USER_EMAIL_NOT_MATHCH_RULES)
 	}
 	// 加盐并加密
 	user.Password = setHaltHash(user.Password)
 	var err error
-	user.Uid, err = common.IDBuilder.NextID()
+	user.Uid, err = util.IDBuilder.NextID()
 	if err != nil {
 		log.Logger.Error("雪花算法生成错误")
 		return err
@@ -144,9 +144,9 @@ func (user *User) AddUser() error {
 	var userStorage interface{}
 	if user.GroupId == 0 {
 		user.GroupId = 2
-		userStorage, _ = redis.GetRedisKey("groups_storage_" + strconv.FormatUint(user.GroupId, 10))
+		userStorage, _ = cache.GetRedisKey("groups_storage_" + strconv.FormatUint(user.GroupId, 10))
 	} else {
-		userStorage, _ = redis.GetRedisKey("groups_storage_" + strconv.FormatUint(user.GroupId, 10))
+		userStorage, _ = cache.GetRedisKey("groups_storage_" + strconv.FormatUint(user.GroupId, 10))
 	}
 	user.TotalStorage, _ = strconv.ParseUint(userStorage.(string), 10, 64)
 	tx := DB.Session(&gorm.Session{})
@@ -156,11 +156,11 @@ func (user *User) AddUser() error {
 		// 我们返回给用户只考虑前者的情况
 		log.Logger.Error("事务执行：插入新用户错误", zap.Any("user", &user), zap.Error(err))
 		tx.Rollback()
-		return common.NewError(common.ERROR_USER_EMAIL_CONFLICT)
+		return util.NewError(util.ERROR_USER_EMAIL_CONFLICT)
 	}
-	if !common.Mkdir(user.Email) {
+	if !util.Mkdir(user.Email) {
 		tx.Rollback()
-		return common.NewError(common.ERROR_USER_MKDIR_FAILED)
+		return util.NewError(util.ERROR_USER_MKDIR_FAILED)
 	}
 	// 插入files表
 	err = tx.Table("files").Create(&File{
@@ -172,7 +172,7 @@ func (user *User) AddUser() error {
 	}).Error
 	if err != nil {
 		tx.Rollback()
-		return common.NewError(common.ERROR_FILE_NEWUSER_MKDIR)
+		return util.NewError(util.ERROR_FILE_NEWUSER_MKDIR)
 	}
 	tx.Commit()
 	return nil
@@ -185,9 +185,9 @@ func (user *User) GetUserDetail() {
 	if user.Email == "" {
 		return
 	}
-	groupName, _ := redis.GetRedisKey("groups_name_" + strconv.FormatUint(user.GroupId, 10))
+	groupName, _ := cache.GetRedisKey("groups_name_" + strconv.FormatUint(user.GroupId, 10))
 	user.GroupName = groupName.(string)
-	groupPermission, _ := redis.GetRedisKey("groups_permission_" + strconv.FormatUint(user.GroupId, 10))
+	groupPermission, _ := cache.GetRedisKey("groups_permission_" + strconv.FormatUint(user.GroupId, 10))
 	user.GroupPermission, _ = strconv.ParseUint(groupPermission.(string), 10, 64)
 }
 
@@ -198,18 +198,18 @@ func VerifyAdmin(uid uint64) bool {
 func ChangeUserInfo(uid uint64, newName string, oldPassword string, newPassword string) error {
 	if newName != "" {
 		if !checkNewName(newName) {
-			return common.NewError(common.ERROR_USER_NAME_LENGTH_NOT_MATCH)
+			return util.NewError(util.ERROR_USER_NAME_LENGTH_NOT_MATCH)
 		}
 		DB.Table("users").Where("uid = ?", uid).Update("name", newName)
 		return nil
 	}
 	if !checkNewPassword(newPassword) {
-		return common.NewError(common.ERROR_USER_PASSWORD_NOT_MATCH_RULES)
+		return util.NewError(util.ERROR_USER_PASSWORD_NOT_MATCH_RULES)
 	}
 	var user User
 	DB.Table("users").Where("uid = ?", uid).Find(&user)
 	if !user.VerifyPassword(oldPassword) {
-		return common.NewError(common.ERROR_USER_UID_PASSWORD_WRONG)
+		return util.NewError(util.ERROR_USER_UID_PASSWORD_WRONG)
 	}
 	DB.Table("users").Where("uid = ?", uid).Update("password", setHaltHash(newPassword))
 	return nil

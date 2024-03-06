@@ -1,8 +1,8 @@
 package model
 
 import (
-	"Rhine-Cloud-Driver/logic/log"
-	"Rhine-Cloud-Driver/logic/redis"
+	"Rhine-Cloud-Driver/pkg/cache"
+	"Rhine-Cloud-Driver/pkg/log"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -22,7 +22,7 @@ type Setting struct {
 func GetSettingByName(name string) string {
 	var setting Setting
 	// 先查缓存
-	tempValue, isExist := redis.GetRedisKey("setting_" + name)
+	tempValue, isExist := cache.GetRedisKey("setting_" + name)
 	if isExist == true {
 		return tempValue.(string)
 	}
@@ -33,6 +33,18 @@ func GetSettingByName(name string) string {
 		return ""
 	}
 	// 放到缓存中
-	redis.SetRedisKey("setting_"+name, setting.Value, 0)
+	cache.SetRedisKey("setting_"+name, setting.Value, 0)
 	return setting.Value
 }
+
+func GetSettingByNames(names ...string) (res map[string]string) {
+	for _, v := range names {
+		tempRes := GetSettingByName(v)
+		if tempRes != "" {
+			res[v] = tempRes
+		}
+	}
+	return
+}
+
+//func S

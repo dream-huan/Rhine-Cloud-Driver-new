@@ -1,10 +1,11 @@
 package controllers
 
 import (
-	"Rhine-Cloud-Driver/common"
-	"Rhine-Cloud-Driver/logic/jwt"
-	"Rhine-Cloud-Driver/logic/log"
 	model "Rhine-Cloud-Driver/models"
+	"Rhine-Cloud-Driver/pkg/jwt"
+	"Rhine-Cloud-Driver/pkg/log"
+	"Rhine-Cloud-Driver/pkg/recaptcha"
+	"Rhine-Cloud-Driver/pkg/util"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"strconv"
@@ -43,8 +44,8 @@ func UserLogin(c *gin.Context) {
 	}
 	log.Logger.Info("用户登录：", zap.Any("data", data))
 	// 先验证recaptcha是否通过
-	if isok := common.VerifyToken(data.RecaptchaToken); isok != true {
-		makeResult(c, 200, common.NewError(common.ERROR_COMMON_RECAPTCHA_VERIFICATION), nil)
+	if isok := recaptcha.VerifyToken(data.RecaptchaToken); isok != true {
+		makeResult(c, 200, util.NewError(util.ERROR_COMMON_RECAPTCHA_VERIFICATION), nil)
 		return
 	}
 	newUser := model.User{}
@@ -86,8 +87,8 @@ func UserRegister(c *gin.Context) {
 		return
 	}
 	// 先验证recaptcha是否通过
-	if isok := common.VerifyToken(data.RecaptchaToken); isok != true {
-		makeResult(c, 200, common.NewError(common.ERROR_COMMON_RECAPTCHA_VERIFICATION), nil)
+	if isok := recaptcha.VerifyToken(data.RecaptchaToken); isok != true {
+		makeResult(c, 200, util.NewError(util.ERROR_COMMON_RECAPTCHA_VERIFICATION), nil)
 		return
 	}
 
@@ -160,8 +161,10 @@ type ChangeUserInfoRequest struct {
 }
 
 func ChangeUserInfo(c *gin.Context) {
-	token, _ := c.Cookie("token")
-	_, uid := jwt.TokenGetUid(token)
+	//token, _ := c.Cookie("token")
+	//_, uid := jwt.TokenGetUid(token)
+	tempValue, _ := c.Get("uid")
+	uid := tempValue.(uint64)
 	var data ChangeUserInfoRequest
 	if err := c.ShouldBindJSON(&data); err != nil {
 		makeResult(c, 200, err, nil)
@@ -176,8 +179,10 @@ func ChangeUserInfo(c *gin.Context) {
 }
 
 func UploadAvatar(c *gin.Context) {
-	token, _ := c.Cookie("token")
-	_, uid := jwt.TokenGetUid(token)
+	//token, _ := c.Cookie("token")
+	//_, uid := jwt.TokenGetUid(token)
+	tempValue, _ := c.Get("uid")
+	uid := tempValue.(uint64)
 	file, _ := c.FormFile("avatar")
 	c.SaveUploadedFile(file, "./avatar/"+strconv.FormatUint(uid, 10))
 	makeResult(c, 200, nil, nil)

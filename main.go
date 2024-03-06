@@ -1,9 +1,10 @@
 package main
 
 import (
-	"Rhine-Cloud-Driver/config"
-	log "Rhine-Cloud-Driver/logic/log"
 	model "Rhine-Cloud-Driver/models"
+	"Rhine-Cloud-Driver/pkg/conf"
+	"Rhine-Cloud-Driver/pkg/crontab"
+	"Rhine-Cloud-Driver/pkg/log"
 	"Rhine-Cloud-Driver/routers"
 	"fmt"
 	"io/ioutil"
@@ -12,10 +13,10 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-var cf config.Config
+var cf conf.Config
 
 func InitConfig() {
-	configFile, err := ioutil.ReadFile("./conf/Rhine-Cloud-Driver.yaml")
+	configFile, err := ioutil.ReadFile("./config.yaml")
 	if err != nil {
 		fmt.Printf("%v", err)
 		panic(err)
@@ -36,5 +37,6 @@ func InitConfig() {
 
 func main() {
 	InitConfig()
+	crontab.Init()
 	routers.InitRouter(cf)
 }

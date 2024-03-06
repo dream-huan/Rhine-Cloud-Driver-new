@@ -56,7 +56,7 @@ func TaskIDVerify(usage int) gin.HandlerFunc {
 		if usage == USAGE_UPLOAD {
 			prefix = model.RedisPrefixUploadID
 			form, _ := c.MultipartForm()
-			if form.Value["upload_id"] != nil {
+			if _, isExist := form.Value["upload_id"]; isExist {
 				id = form.Value["upload_id"][0]
 			} else {
 				c.JSON(200, util.ResponseData{Code: 1, Msg: "请求ID非法", Data: nil})

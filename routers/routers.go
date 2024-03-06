@@ -6,7 +6,28 @@ import (
 	"Rhine-Cloud-Driver/pkg/conf"
 	"Rhine-Cloud-Driver/routers/controllers"
 	"github.com/gin-gonic/gin"
+	"net/http/pprof"
+	_ "net/http/pprof"
 )
+
+func registerPprofRoutes(router *gin.Engine) {
+	// 创建一个pprof的路由组
+	pprofGroup := router.Group("/debug/pprof")
+	{
+		pprofGroup.GET("/", gin.WrapF(pprof.Index))
+		pprofGroup.GET("/cmdline", gin.WrapF(pprof.Cmdline))
+		pprofGroup.GET("/profile", gin.WrapF(pprof.Profile))
+		pprofGroup.POST("/symbol", gin.WrapF(pprof.Symbol))
+		pprofGroup.GET("/symbol", gin.WrapF(pprof.Symbol))
+		pprofGroup.GET("/trace", gin.WrapF(pprof.Trace))
+		pprofGroup.GET("/allocs", gin.WrapF(pprof.Handler("allocs").ServeHTTP))
+		pprofGroup.GET("/block", gin.WrapF(pprof.Handler("block").ServeHTTP))
+		pprofGroup.GET("/goroutine", gin.WrapF(pprof.Handler("goroutine").ServeHTTP))
+		pprofGroup.GET("/heap", gin.WrapF(pprof.Handler("heap").ServeHTTP))
+		pprofGroup.GET("/mutex", gin.WrapF(pprof.Handler("mutex").ServeHTTP))
+		pprofGroup.GET("/threadcreate", gin.WrapF(pprof.Handler("threadcreate").ServeHTTP))
+	}
+}
 
 func InitRouter(cf conf.Config) *gin.Engine {
 	router := gin.Default()
@@ -86,6 +107,9 @@ func InitRouter(cf conf.Config) *gin.Engine {
 		adminWriteRouter.POST("create_group", controllers.AdminCreateGroup)
 		adminWriteRouter.POST("delete_group", controllers.AdminDeleteGroup)
 	}
+
+	// 注册pprof的路由到Gin
+	registerPprofRoutes(router)
 
 	router.Run(cf.Server.Host)
 	return router

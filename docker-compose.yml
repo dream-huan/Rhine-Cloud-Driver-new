@@ -5,10 +5,14 @@ services:
     image: dreamxw/rhine-cloud-driver:latest
     restart: always
     volumes:
-      - ./uploads:/rhine-cloud-driver/uploads
+#      - ./uploads:/rhine-cloud-driver/uploads
       - ./config.yaml:/rhine-cloud-driver/config.yaml
-      - ./avatar:/rhine-cloud-driver/avatar
-      - ./logs:/rhine-cloud-driver/logs
+#      - ./avatar:/rhine-cloud-driver/avatar
+#      - ./logs:/rhine-cloud-driver/logs
+      - ./rhine-cloud-driver/uploads:/rhine-cloud-driver/uploads
+#      - ./rhine-cloud-driver/Rhine-Cloud-Driver.yaml:/rhine-cloud-driver/conf/Rhine-Cloud-Driver.yaml
+      - ./rhine-cloud-driver/avatar:/rhine-cloud-driver/avatar
+      - ./rhine-cloud-driver/logs:/rhine-cloud-driver/logs
     depends_on:
       - mysql
       - redis
@@ -28,8 +32,8 @@ services:
       - MYSQL_DATABASE=project
     network_mode: host
     volumes:
-      - ./mysql/conf.d:/etc/mysql/conf.d
-      - ./mysql/data:/var/lib/mysql
+      - ./rhine-cloud-driver/mysql/conf.d:/etc/mysql/conf.d
+      - ./rhine-cloud-driver/mysql/data:/var/lib/mysql
   redis:
     container_name: redis
     image: redis:7.0
@@ -41,9 +45,9 @@ services:
     restart: always
     network_mode: host
     volumes:
-      - ./default.conf:/etc/nginx/conf.d/default.conf
-      - ./build:/usr/share/nginx/html
-      - ./cert:/etc/nginx/cert
+      - ./rhine-cloud-driver/nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - ./rhine-cloud-driver/nginx/build:/usr/share/nginx/html
+      - ./rhine-cloud-driver/nginx/cert:/etc/nginx/cert
     deploy:
       resources:
         limits:
